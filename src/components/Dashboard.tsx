@@ -27,25 +27,25 @@ const Dashboard: React.FC<DashboardProps> = ({ jobs, onViewChange }) => {
       title: 'Total Earnings',
       value: `£${totalEarnings.toFixed(2)}`,
       icon: PoundSterling,
-      color: 'bg-emerald-500',
+      color: 'bg-slate-600',
     },
     {
       title: 'Completed Jobs',
       value: completedJobs.toString(),
       icon: FileText,
-      color: 'bg-blue-500',
+      color: 'bg-slate-500',
     },
     {
       title: 'Pending Jobs',
       value: pendingJobs.toString(),
       icon: Calendar,
-      color: 'bg-amber-500',
+      color: 'bg-slate-700',
     },
     {
       title: 'This Month',
       value: `£${thisMonthEarnings.toFixed(2)}`,
       icon: PoundSterling,
-      color: 'bg-purple-500',
+      color: 'bg-slate-800',
     },
   ];
 
@@ -55,7 +55,7 @@ const Dashboard: React.FC<DashboardProps> = ({ jobs, onViewChange }) => {
         <h2 className="text-3xl font-bold text-slate-800">Dashboard</h2>
         <button
           onClick={() => onViewChange('add-job')}
-          className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+          className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
         >
           Add New Job
         </button>
@@ -67,10 +67,10 @@ const Dashboard: React.FC<DashboardProps> = ({ jobs, onViewChange }) => {
           return (
             <div
               key={stat.title}
-              className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 hover:shadow-md transition-shadow duration-200"
+              className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 hover:shadow-xl transition-all duration-200"
             >
               <div className="flex items-center">
-                <div className={`p-3 rounded-lg ${stat.color}`}>
+                <div className={`p-4 rounded-xl shadow-md ${stat.color}`}>
                   <Icon className="h-6 w-6 text-white" />
                 </div>
                 <div className="ml-4">
@@ -83,7 +83,7 @@ const Dashboard: React.FC<DashboardProps> = ({ jobs, onViewChange }) => {
         })}
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+      <div className="bg-white rounded-2xl shadow-lg border border-slate-200">
         <div className="px-6 py-4 border-b border-slate-200">
           <h3 className="text-lg font-semibold text-slate-800">Recent Jobs</h3>
         </div>
@@ -99,15 +99,15 @@ const Dashboard: React.FC<DashboardProps> = ({ jobs, onViewChange }) => {
             </div>
           ) : (
             recentJobs.map((job) => (
-              <div key={job.id} className="px-6 py-4 hover:bg-slate-50 transition-colors duration-200">
+              <div key={job.id} className="px-6 py-3 hover:bg-slate-50 transition-colors duration-200">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-800">{job.clientName}</p>
-                    <p className="text-sm text-slate-500 capitalize">{job.type}</p>
+                    <p className="text-xs text-slate-500 capitalize leading-tight">{job.type}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium text-slate-800">£{job.total.toFixed(2)}</p>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-xs text-slate-500 leading-tight">
                       {new Date(job.date).toLocaleDateString()}
                     </p>
                   </div>
