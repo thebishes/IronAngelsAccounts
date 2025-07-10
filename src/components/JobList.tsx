@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Job } from '../types';
 import { Search, Eye, Edit, Trash2, Calendar, User, PoundSterling } from 'lucide-react';
+import { formatDateUK } from '../utils/dateUtils';
 
 interface JobListProps {
   jobs: Job[];
@@ -166,7 +167,7 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
               {filteredJobs.map((job) => (
                 <tr key={job.id} className="hover:bg-slate-50 transition-colors duration-200">
                   <td className="py-4 px-4 text-sm text-slate-600">
-                    {new Date(job.date).toLocaleDateString()}
+                    {formatDateUK(job.date)}
                   </td>
                   <td className="py-4 px-4 text-sm font-medium text-slate-800">
                     {job.clientName}
@@ -248,7 +249,7 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-600">Date</label>
-                  <p className="text-slate-800">{new Date(selectedJob.date).toLocaleDateString()}</p>
+                  <p className="text-slate-800">{formatDateUK(selectedJob.date)}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-600">Type</label>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Job } from '../types';
 import { Calendar, PoundSterling, FileText, TrendingUp } from 'lucide-react';
+import { formatDateUK } from '../utils/dateUtils';
 
 interface DashboardProps {
   jobs: Job[];
@@ -108,7 +109,7 @@ const Dashboard: React.FC<DashboardProps> = ({ jobs, onViewChange }) => {
                   <div className="text-right">
                     <p className="text-sm font-medium text-slate-800">£{job.total.toFixed(2)}</p>
                     <p className="text-xs text-slate-500 leading-tight">
-                      {new Date(job.date).toLocaleDateString()}
+                      {formatDateUK(job.date)}
                     </p>
                   </div>
                 </div>
