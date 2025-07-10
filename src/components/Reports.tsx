@@ -269,3 +269,5 @@ const Reports: React.FC<ReportsProps> = ({ jobs }) => {
 };
 
 export default Reports;
+
+export default Reports
