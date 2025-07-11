@@ -27,15 +27,22 @@ const convertJobRowToJob = (jobRow: JobRow, items: JobItemRow[]): Job => {
 };
 
 export const jobService = {
-  async getAllJobs(): Promise<Job[]> {
+  async getAllJobs(teamId?: string): Promise<Job[]> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    const { data: jobs, error: jobsError } = await supabase
+    let query = supabase
       .from('jobs')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('date', { ascending: false });
+      .select('*');
+
+    if (teamId) {
+      query = query.eq('team_id', teamId);
+    } else {
+      // Get personal jobs (no team) for backward compatibility
+      query = query.eq('user_id', user.id).is('team_id', null);
+    }
+
+    const { data: jobs, error: jobsError } = await query.order('date', { ascending: false });
 
     if (jobsError) throw jobsError;
 
@@ -52,7 +59,7 @@ export const jobService = {
     });
   },
 
-  async createJob(job: Omit<Job, 'id' | 'createdAt'>): Promise<Job> {
+  async createJob(job: Omit<Job, 'id' | 'createdAt'>, teamId?: string): Promise<Job> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
@@ -65,7 +72,8 @@ export const jobService = {
         type: job.type,
         status: job.status,
         notes: job.notes || null,
-        user_id: user.id
+        user_id: user.id,
+        team_id: teamId || null
       })
       .select()
       .single();
@@ -94,6 +102,15 @@ export const jobService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    // Get the job to check team_id
+    const { data: existingJob, error: fetchError } = await supabase
+      .from('jobs')
+      .select('team_id')
+      .eq('id', job.id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
     // Update job
     const { data: jobData, error: jobError } = await supabase
       .from('jobs')
@@ -103,10 +120,10 @@ export const jobService = {
         type: job.type,
         status: job.status,
         notes: job.notes || null,
+        team_id: existingJob.team_id,
         updated_at: new Date().toISOString()
       })
       .eq('id', job.id)
-      .eq('user_id', user.id)
       .select()
       .single();
 
@@ -145,8 +162,7 @@ export const jobService = {
     const { error } = await supabase
       .from('jobs')
       .delete()
-      .eq('id', jobId)
-      .eq('user_id', user.id);
+      .eq('id', jobId);
 
     if (error) throw error;
   }

@@ -9,6 +9,87 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      teams: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          owner_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          owner_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          owner_id?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      team_members: {
+        Row: {
+          id: string
+          team_id: string
+          user_id: string
+          role: 'owner' | 'admin' | 'editor' | 'viewer'
+          joined_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          user_id: string
+          role?: 'owner' | 'admin' | 'editor' | 'viewer'
+          joined_at?: string
+        }
+        Update: {
+          id?: string
+          team_id?: string
+          user_id?: string
+          role?: 'owner' | 'admin' | 'editor' | 'viewer'
+          joined_at?: string
+        }
+      }
+      team_invitations: {
+        Row: {
+          id: string
+          team_id: string
+          email: string
+          role: 'owner' | 'admin' | 'editor' | 'viewer'
+          invited_by: string
+          expires_at: string
+          accepted_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          email: string
+          role?: 'owner' | 'admin' | 'editor' | 'viewer'
+          invited_by: string
+          expires_at?: string
+          accepted_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          team_id?: string
+          email?: string
+          role?: 'owner' | 'admin' | 'editor' | 'viewer'
+          invited_by?: string
+          expires_at?: string
+          accepted_at?: string | null
+          created_at?: string
+        }
+      }
       jobs: {
         Row: {
           id: string
@@ -21,6 +102,7 @@ export interface Database {
           created_at: string
           updated_at: string
           user_id: string
+          team_id: string | null
         }
         Insert: {
           id?: string
@@ -33,6 +115,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
           user_id: string
+          team_id?: string | null
         }
         Update: {
           id?: string
@@ -45,6 +128,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
           user_id?: string
+          team_id?: string | null
         }
       }
       job_items: {
@@ -86,6 +170,7 @@ export interface Database {
     Enums: {
       job_status: 'completed' | 'pending' | 'invoiced'
       job_type: 'ironing' | 'cleaning' | 'both'
+      team_role: 'owner' | 'admin' | 'editor' | 'viewer'
     }
     CompositeTypes: {
       [_ in never]: never
