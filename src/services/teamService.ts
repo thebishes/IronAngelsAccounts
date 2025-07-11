@@ -233,7 +233,7 @@ export const teamService = {
 
     const { data: invitations, error: invitationsError } = await supabase
       .from('team_invitations')
-      .select('*')
+      .select('id, team_id, email, role, invited_by, expires_at, accepted_at, created_at')
       .eq('email', session.user.email)
       .is('accepted_at', null)
       .gt('expires_at', new Date().toISOString());
