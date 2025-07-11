@@ -28,8 +28,8 @@ const convertJobRowToJob = (jobRow: JobRow, items: JobItemRow[]): Job => {
 
 export const jobService = {
   async getAllJobs(teamId?: string): Promise<Job[]> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || !session.user) throw new Error('User not authenticated');
 
     let query = supabase
       .from('jobs')
@@ -39,7 +39,7 @@ export const jobService = {
       query = query.eq('team_id', teamId);
     } else {
       // Get personal jobs (no team) for backward compatibility
-      query = query.eq('user_id', user.id).is('team_id', null);
+      query = query.eq('user_id', session.user.id).is('team_id', null);
     }
 
     const { data: jobs, error: jobsError } = await query.order('date', { ascending: false });
@@ -60,8 +60,8 @@ export const jobService = {
   },
 
   async createJob(job: Omit<Job, 'id' | 'createdAt'>, teamId?: string): Promise<Job> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || !session.user) throw new Error('User not authenticated');
 
     // Insert job
     const { data: jobData, error: jobError } = await supabase
@@ -72,7 +72,7 @@ export const jobService = {
         type: job.type,
         status: job.status,
         notes: job.notes || null,
-        user_id: user.id,
+        user_id: session.user.id,
         team_id: teamId || null
       })
       .select()
@@ -99,8 +99,8 @@ export const jobService = {
   },
 
   async updateJob(job: Job): Promise<Job> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || !session.user) throw new Error('User not authenticated');
 
     // Get the job to check team_id
     const { data: existingJob, error: fetchError } = await supabase
@@ -156,8 +156,8 @@ export const jobService = {
   },
 
   async deleteJob(jobId: string): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || !session.user) throw new Error('User not authenticated');
 
     const { error } = await supabase
       .from('jobs')

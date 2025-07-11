@@ -9,14 +9,14 @@ type TeamInvitationRow = Database['public']['Tables']['team_invitations']['Row']
 export const teamService = {
   // Get all teams for current user
   async getUserTeams(): Promise<UserTeamInfo[]> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || !session.user) throw new Error('User not authenticated');
 
     // Get teams where user is owner
     const { data: ownedTeams, error: ownedError } = await supabase
       .from('teams')
       .select('*')
-      .eq('owner_id', user.id);
+      .eq('owner_id', session.user.id);
 
     if (ownedError) throw ownedError;
 
@@ -28,7 +28,7 @@ export const teamService = {
         role,
         teams (*)
       `)
-      .eq('user_id', user.id);
+      .eq('user_id', session.user.id);
 
     if (memberError) throw memberError;
 
@@ -59,15 +59,15 @@ export const teamService = {
 
   // Create a new team
   async createTeam(name: string, description?: string): Promise<Team> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || !session.user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
       .from('teams')
       .insert({
         name,
         description,
-        owner_id: user.id
+        owner_id: session.user.id
       })
       .select()
       .single();
@@ -104,7 +104,10 @@ export const teamService = {
 
   // Get team members
   async getTeamMembers(teamId: string): Promise<TeamMember[]> {
-    // First get team members
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || !session.user) throw new Error('User not authenticated');
+
+    // Get team members
     const { data: members, error: membersError } = await supabase
       .from('team_members')
       .select('*')
@@ -113,61 +116,19 @@ export const teamService = {
     if (membersError) throw membersError;
     if (!members) return [];
 
-    // Then get user emails from auth.users table
-    const userIds = members.map(member => member.user_id);
-    const { data: users, error: usersError } = await supabase.auth.admin
-      .listUsers()
-      .then(({ data, error }) => {
-        if (error) throw error;
-        return {
-          data: data.users.filter(user => userIds.includes(user.id)).map(user => ({
-            id: user.id,
-            email: user.email
-          })),
-          error: null
-        };
-      })
-      .catch(async () => {
-        // Fallback to direct query if admin access fails
-        return await supabase
-          .from('users')
-          .select('id, email')
-          .in('id', userIds);
-      });
-
-    if (usersError) {
-      // Try querying auth.users directly as a final fallback
-      const { data: authUsers, error: authError } = await supabase
-        .from('auth.users')
-      .select('id, email')
-      .in('id', userIds);
-
-      if (authError) throw authError;
-      
-      // Combine the data with auth users
-      return members.map(member => {
-        const user = authUsers?.find(u => u.id === member.user_id);
-        return {
-          ...member,
-          user: user ? { email: user.email } : undefined
-        };
-      });
-    }
-
-    // Combine the data
+    // Only populate email for the current user for security reasons
     return members.map(member => {
-      const user = users?.find(u => u.id === member.user_id);
       return {
         ...member,
-        user: user ? { email: user.email } : undefined
+        user: member.user_id === session.user.id ? { email: session.user.email } : undefined
       };
     });
   },
 
   // Invite user to team
   async inviteToTeam(teamId: string, email: string, role: TeamRole = 'viewer'): Promise<TeamInvitation> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || !session.user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
       .from('team_invitations')
@@ -175,7 +136,7 @@ export const teamService = {
         team_id: teamId,
         email,
         role,
-        invited_by: user.id
+        invited_by: session.user.id
       })
       .select()
       .single();
@@ -199,15 +160,15 @@ export const teamService = {
 
   // Accept team invitation
   async acceptInvitation(invitationId: string): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || !session.user) throw new Error('User not authenticated');
 
     // Get invitation details
     const { data: invitation, error: inviteError } = await supabase
       .from('team_invitations')
       .select('*')
       .eq('id', invitationId)
-      .eq('email', user.email)
+      .eq('email', session.user.email)
       .is('accepted_at', null)
       .gt('expires_at', new Date().toISOString())
       .single();
@@ -220,7 +181,7 @@ export const teamService = {
       .from('team_members')
       .insert({
         team_id: invitation.team_id,
-        user_id: user.id,
+        user_id: session.user.id,
         role: invitation.role
       });
 
@@ -267,13 +228,13 @@ export const teamService = {
 
   // Get user's pending invitations
   async getUserInvitations(): Promise<TeamInvitation[]> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || !session.user) throw new Error('User not authenticated');
 
     const { data: invitations, error: invitationsError } = await supabase
       .from('team_invitations')
       .select('*')
-      .eq('email', user.email)
+      .eq('email', session.user.email)
       .is('accepted_at', null)
       .gt('expires_at', new Date().toISOString());
 
