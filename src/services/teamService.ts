@@ -109,10 +109,7 @@ export const teamService = {
   async getTeamMembers(teamId: string): Promise<TeamMember[]> {
     const { data: members, error: membersError } = await supabase
       .from('team_members')
-      .select(`
-        *,
-        users!team_members_user_id_fkey (email)
-      `)
+      .select('*')
       .eq('team_id', teamId);
 
     if (membersError) throw membersError;
@@ -121,7 +118,7 @@ export const teamService = {
     return members.map(member => {
       return {
         ...member,
-        user: member.users ? { email: member.users.email } : undefined
+        user: undefined // User email not available without additional schema setup
       };
     });
   },
