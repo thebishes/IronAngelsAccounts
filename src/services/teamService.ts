@@ -104,23 +104,21 @@ export const teamService = {
 
   // Get team members
   async getTeamMembers(teamId: string): Promise<TeamMember[]> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !session.user) throw new Error('User not authenticated');
-
-    // Get team members
     const { data: members, error: membersError } = await supabase
       .from('team_members')
-      .select('*')
+      .select(`
+        *,
+        users!team_members_user_id_fkey (email)
+      `)
       .eq('team_id', teamId);
 
     if (membersError) throw membersError;
     if (!members) return [];
 
-    // Only populate email for the current user for security reasons
     return members.map(member => {
       return {
         ...member,
-        user: member.user_id === session.user.id ? { email: session.user.email } : undefined
+        user: member.users ? { email: member.users.email } : undefined
       };
     });
   },
