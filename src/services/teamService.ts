@@ -104,20 +104,32 @@ export const teamService = {
 
   // Get team members
   async getTeamMembers(teamId: string): Promise<TeamMember[]> {
-    const { data, error } = await supabase
+    // First get team members
+    const { data: members, error: membersError } = await supabase
       .from('team_members')
-      .select(`
-        *,
-        user:user_id (email)
-      `)
+      .select('*')
       .eq('team_id', teamId);
 
-    if (error) throw error;
+    if (membersError) throw membersError;
+    if (!members) return [];
 
-    return data.map(member => ({
-      ...member,
-      user: member.user ? { email: (member.user as any).email } : undefined
-    }));
+    // Then get user emails from our users table
+    const userIds = members.map(member => member.user_id);
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('id, email')
+      .in('id', userIds);
+
+    if (usersError) throw usersError;
+
+    // Combine the data
+    return members.map(member => {
+      const user = users?.find(u => u.id === member.user_id);
+      return {
+        ...member,
+        user: user ? { email: user.email } : undefined
+      };
+    });
   },
 
   // Invite user to team
@@ -226,17 +238,29 @@ export const teamService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    const { data, error } = await supabase
+    const { data: invitations, error: invitationsError } = await supabase
       .from('team_invitations')
-      .select(`
-        *,
-        teams (name)
-      `)
+      .select('*')
       .eq('email', user.email)
       .is('accepted_at', null)
       .gt('expires_at', new Date().toISOString());
 
-    if (error) throw error;
-    return data;
+    if (invitationsError) throw invitationsError;
+    if (!invitations) return [];
+
+    // Get team names separately
+    const teamIds = invitations.map(inv => inv.team_id);
+    const { data: teams, error: teamsError } = await supabase
+      .from('teams')
+      .select('id, name')
+      .in('id', teamIds);
+
+    if (teamsError) throw teamsError;
+
+    // Combine the data
+    return invitations.map(invitation => ({
+      ...invitation,
+      teams: teams?.find(t => t.id === invitation.team_id)
+    }));
   }
 };
