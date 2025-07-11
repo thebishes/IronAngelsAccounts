@@ -113,14 +113,46 @@ export const teamService = {
     if (membersError) throw membersError;
     if (!members) return [];
 
-    // Then get user emails from our users table
+    // Then get user emails from auth.users table
     const userIds = members.map(member => member.user_id);
-    const { data: users, error: usersError } = await supabase
-      .from('users')
+    const { data: users, error: usersError } = await supabase.auth.admin
+      .listUsers()
+      .then(({ data, error }) => {
+        if (error) throw error;
+        return {
+          data: data.users.filter(user => userIds.includes(user.id)).map(user => ({
+            id: user.id,
+            email: user.email
+          })),
+          error: null
+        };
+      })
+      .catch(async () => {
+        // Fallback to direct query if admin access fails
+        return await supabase
+          .from('users')
+          .select('id, email')
+          .in('id', userIds);
+      });
+
+    if (usersError) {
+      // Try querying auth.users directly as a final fallback
+      const { data: authUsers, error: authError } = await supabase
+        .from('auth.users')
       .select('id, email')
       .in('id', userIds);
 
-    if (usersError) throw usersError;
+      if (authError) throw authError;
+      
+      // Combine the data with auth users
+      return members.map(member => {
+        const user = authUsers?.find(u => u.id === member.user_id);
+        return {
+          ...member,
+          user: user ? { email: user.email } : undefined
+        };
+      });
+    }
 
     // Combine the data
     return members.map(member => {
