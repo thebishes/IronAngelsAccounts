@@ -33,6 +33,7 @@ export const teamService = {
     if (memberError) throw memberError;
 
     const userTeams: UserTeamInfo[] = [];
+    const addedTeamIds = new Set<string>();
 
     // Add owned teams
     ownedTeams.forEach(team => {
@@ -41,16 +42,18 @@ export const teamService = {
         role: 'owner' as TeamRole,
         member_id: team.id // Use team id as member id for owners
       });
+      addedTeamIds.add(team.id);
     });
 
     // Add member teams
     memberTeams.forEach(member => {
-      if (member.teams) {
+      if (member.teams && !addedTeamIds.has(member.teams.id)) {
         userTeams.push({
           team: member.teams as Team,
           role: member.role as TeamRole,
           member_id: member.id
         });
+        addedTeamIds.add(member.teams.id);
       }
     });
 
