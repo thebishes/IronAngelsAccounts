@@ -92,6 +92,9 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ onViewChange, onTeamSel
       setInviteRole('viewer');
       setShowInviteUser(false);
       await loadTeamDetails();
+      
+      // Show success message
+      alert(`Invitation sent to ${inviteEmail}! They will receive an email with instructions to join the team.`);
     } catch (err) {
       console.error('Error inviting user:', err);
       setError('Failed to invite user');

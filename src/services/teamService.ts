@@ -128,6 +128,15 @@ export const teamService = {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session || !session.user) throw new Error('User not authenticated');
 
+    // Get team details for the email
+    const { data: team, error: teamError } = await supabase
+      .from('teams')
+      .select('name')
+      .eq('id', teamId)
+      .single();
+
+    if (teamError) throw teamError;
+
     const { data, error } = await supabase
       .from('team_invitations')
       .insert({
@@ -140,6 +149,32 @@ export const teamService = {
       .single();
 
     if (error) throw error;
+
+    // Send invitation email via edge function
+    try {
+      const emailResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-team-invitation`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          teamName: team.name,
+          inviterEmail: session.user.email,
+          inviteeEmail: email,
+          role,
+          invitationId: data.id
+        }),
+      });
+
+      if (!emailResponse.ok) {
+        console.warn('Failed to send invitation email:', await emailResponse.text());
+      }
+    } catch (emailError) {
+      console.warn('Error sending invitation email:', emailError);
+      // Don't throw here - the invitation was created successfully
+    }
+
     return data;
   },
 
