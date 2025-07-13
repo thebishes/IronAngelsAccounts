@@ -104,7 +104,17 @@ const Dashboard: React.FC<DashboardProps> = ({ jobs, onViewChange }) => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-800">{job.clientName}</p>
-                    <p className="text-xs text-slate-500 capitalize leading-tight">{job.type}</p>
+                    <div className="flex items-center space-x-2">
+                      <p className="text-xs text-slate-500 capitalize leading-tight">{job.type}</p>
+                      {job.notes && (
+                        <span className="text-xs text-slate-400">•</span>
+                      )}
+                    </div>
+                    {job.notes && (
+                      <p className="text-xs text-slate-400 mt-1 leading-tight truncate max-w-xs">
+                        {job.notes}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium text-slate-800">£{job.total.toFixed(2)}</p>
