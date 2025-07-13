@@ -95,7 +95,7 @@ serve(async (req) => {
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
-          },
+          }
         )
       } catch (emailError) {
         console.error('Error sending email via Resend:', emailError)
@@ -114,34 +114,7 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
-      },
-    )
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: 'Iron & Clean Pro <noreply@yourdomain.com>',
-          to: [inviteeEmail],
-          subject: `Invitation to join ${teamName}`,
-          html: emailHtml,
-        }),
-      })
-    }
-    */
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Invitation email sent successfully',
-        // For development, include the email content so you can see what would be sent
-        emailContent: emailHtml
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
+      }
     )
 
   } catch (error) {
@@ -150,7 +123,7 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
-      },
+      }
     )
   }
 })
