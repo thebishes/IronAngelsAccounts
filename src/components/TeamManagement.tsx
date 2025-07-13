@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Settings, Mail, Crown, Shield, Edit, Eye, Trash2, UserPlus, X } from 'lucide-react';
-import { Team, TeamMember, TeamInvitation, UserTeamInfo, TeamRole } from '../types';
+import { Users, Plus, Settings, Crown, Shield, Edit, Eye, Trash2, UserPlus, X, User } from 'lucide-react';
+import { Team, TeamMember, UserTeamInfo, TeamRole } from '../types';
 import { teamService } from '../services/teamService';
+import { userService, User as UserType } from '../services/userService';
 
 interface TeamManagementProps {
   onViewChange: (view: string) => void;
@@ -12,16 +13,19 @@ interface TeamManagementProps {
 const TeamManagement: React.FC<TeamManagementProps> = ({ onViewChange, onTeamSelect, currentTeam }) => {
   const [userTeams, setUserTeams] = useState<UserTeamInfo[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [teamInvitations, setTeamInvitations] = useState<TeamInvitation[]>([]);
-  const [pendingInvitations, setPendingInvitations] = useState<TeamInvitation[]>([]);
+  const [allUsers, setAllUsers] = useState<UserType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateTeam, setShowCreateTeam] = useState(false);
-  const [showInviteUser, setShowInviteUser] = useState(false);
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [showUserAdmin, setShowUserAdmin] = useState(false);
+  const [showCreateUser, setShowCreateUser] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamDescription, setNewTeamDescription] = useState('');
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<TeamRole>('viewer');
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedRole, setSelectedRole] = useState<TeamRole>('viewer');
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
 
   useEffect(() => {
     loadData();
@@ -36,15 +40,15 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ onViewChange, onTeamSel
   const loadData = async () => {
     try {
       setError(null);
-      const [teams, invitations] = await Promise.all([
+      const [teams, users] = await Promise.all([
         teamService.getUserTeams(),
-        teamService.getUserInvitations()
+        userService.getAllUsers()
       ]);
       setUserTeams(teams);
-      setPendingInvitations(invitations);
+      setAllUsers(users);
     } catch (err) {
-      console.error('Error loading teams:', err);
-      setError('Failed to load teams');
+      console.error('Error loading data:', err);
+      setError('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -54,12 +58,8 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ onViewChange, onTeamSel
     if (!currentTeam) return;
 
     try {
-      const [members, invitations] = await Promise.all([
-        teamService.getTeamMembers(currentTeam.team.id),
-        teamService.getTeamInvitations(currentTeam.team.id)
-      ]);
+      const members = await teamService.getTeamMembers(currentTeam.team.id);
       setTeamMembers(members);
-      setTeamInvitations(invitations);
     } catch (err) {
       console.error('Error loading team details:', err);
       setError('Failed to load team details');
@@ -81,34 +81,35 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ onViewChange, onTeamSel
     }
   };
 
-  const handleInviteUser = async (e: React.FormEvent) => {
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentTeam) return;
-
     try {
       setError(null);
-      await teamService.inviteToTeam(currentTeam.team.id, inviteEmail, inviteRole);
-      setInviteEmail('');
-      setInviteRole('viewer');
-      setShowInviteUser(false);
-      await loadTeamDetails();
-      
-      // Show success message
-      alert(`Invitation sent to ${inviteEmail}! They will receive an email with instructions to join the team.`);
+      await userService.createUser(newUserEmail, newUserPassword);
+      setNewUserEmail('');
+      setNewUserPassword('');
+      setShowCreateUser(false);
+      await loadData();
     } catch (err) {
-      console.error('Error inviting user:', err);
-      setError('Failed to invite user');
+      console.error('Error creating user:', err);
+      setError('Failed to create user');
     }
   };
 
-  const handleAcceptInvitation = async (invitationId: string) => {
+  const handleAddUserToTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentTeam || !selectedUserId) return;
+
     try {
       setError(null);
-      await teamService.acceptInvitation(invitationId);
-      await loadData();
+      await teamService.addUserToTeam(currentTeam.team.id, selectedUserId, selectedRole);
+      setSelectedUserId('');
+      setSelectedRole('viewer');
+      setShowAddUser(false);
+      await loadTeamDetails();
     } catch (err) {
-      console.error('Error accepting invitation:', err);
-      setError('Failed to accept invitation');
+      console.error('Error adding user to team:', err);
+      setError('Failed to add user to team');
     }
   };
 
@@ -136,6 +137,22 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ onViewChange, onTeamSel
     }
   };
 
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+
+    try {
+      setError(null);
+      await userService.deleteUser(userId);
+      await loadData();
+      if (currentTeam) {
+        await loadTeamDetails();
+      }
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      setError('Failed to delete user');
+    }
+  };
+
   const getRoleIcon = (role: TeamRole) => {
     switch (role) {
       case 'owner': return <Crown className="h-4 w-4 text-yellow-600" />;
@@ -156,10 +173,15 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ onViewChange, onTeamSel
 
   const canManageTeam = (role: TeamRole) => ['owner', 'admin'].includes(role);
 
+  // Get available users (not already in the current team)
+  const availableUsers = allUsers.filter(user => 
+    !teamMembers.some(member => member.user_id === user.id)
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="text-slate-600">Loading teams...</div>
+        <div className="text-slate-600">Loading...</div>
       </div>
     );
   }
@@ -169,6 +191,13 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ onViewChange, onTeamSel
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold text-slate-800">Team Management</h2>
         <div className="flex space-x-3">
+          <button
+            onClick={() => setShowUserAdmin(true)}
+            className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
+          >
+            <User className="h-4 w-4 mr-2" />
+            User Admin
+          </button>
           <button
             onClick={() => setShowCreateTeam(true)}
             className="flex items-center px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors duration-200"
@@ -188,33 +217,6 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ onViewChange, onTeamSel
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-600">{error}</p>
-        </div>
-      )}
-
-      {/* Pending Invitations */}
-      {pendingInvitations.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-blue-800 mb-4">Pending Invitations</h3>
-          <div className="space-y-3">
-            {pendingInvitations.map((invitation) => (
-              <div key={invitation.id} className="flex items-center justify-between bg-white p-4 rounded-lg">
-                <div>
-                  <p className="font-medium text-slate-800">
-                    Invitation to join {(invitation as any).teams?.name}
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    Role: <span className="capitalize">{invitation.role}</span>
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleAcceptInvitation(invitation.id)}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors duration-200"
-                >
-                  Accept
-                </button>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
@@ -284,11 +286,11 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ onViewChange, onTeamSel
             </h3>
             {canManageTeam(currentTeam.role) && (
               <button
-                onClick={() => setShowInviteUser(true)}
+                onClick={() => setShowAddUser(true)}
                 className="flex items-center px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors duration-200"
               >
                 <UserPlus className="h-4 w-4 mr-2" />
-                Invite User
+                Add User
               </button>
             )}
           </div>
@@ -301,7 +303,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ onViewChange, onTeamSel
                       {getRoleIcon(member.role)}
                     </div>
                     <div>
-                      <p className="font-medium text-slate-800">{member.user?.email}</p>
+                      <p className="font-medium text-slate-800">{member.user?.email || 'Unknown User'}</p>
                       <p className="text-sm text-slate-600">
                         Joined {new Date(member.joined_at).toLocaleDateString()}
                       </p>
@@ -334,33 +336,116 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ onViewChange, onTeamSel
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
 
-            {/* Pending Invitations for this team */}
-            {teamInvitations.length > 0 && (
-              <div className="mt-6">
-                <h4 className="text-md font-semibold text-slate-800 mb-3">Pending Invitations</h4>
-                <div className="space-y-3">
-                  {teamInvitations.map((invitation) => (
-                    <div key={invitation.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                      <div>
-                        <p className="font-medium text-slate-800">{invitation.email}</p>
-                        <p className="text-sm text-slate-600">
-                          Invited as {invitation.role} • Expires {new Date(invitation.expires_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      {canManageTeam(currentTeam.role) && (
-                        <button
-                          onClick={() => teamService.cancelInvitation(invitation.id).then(loadTeamDetails)}
-                          className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
+      {/* User Admin Modal */}
+      {showUserAdmin && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-slate-800">User Administration</h3>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setShowCreateUser(true)}
+                  className="flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Create User
+                </button>
+                <button
+                  onClick={() => setShowUserAdmin(false)}
+                  className="text-slate-500 hover:text-slate-700"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-            )}
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                {allUsers.map((user) => (
+                  <div key={user.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-slate-800">{user.email}</p>
+                      <p className="text-sm text-slate-600">
+                        Created {new Date(user.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                        title="Delete User"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create User Modal */}
+      {showCreateUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-slate-800">Create New User</h3>
+              <button
+                onClick={() => setShowCreateUser(false)}
+                className="text-slate-500 hover:text-slate-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateUser} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                  placeholder="Enter email address"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Password *
+                </label>
+                <input
+                  type="password"
+                  value={newUserPassword}
+                  onChange={(e) => setNewUserPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                  placeholder="Enter password"
+                  minLength={6}
+                  required
+                />
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateUser(false)}
+                  className="px-4 py-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors duration-200"
+                >
+                  Create User
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -424,40 +509,45 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ onViewChange, onTeamSel
         </div>
       )}
 
-      {/* Invite User Modal */}
-      {showInviteUser && currentTeam && (
+      {/* Add User to Team Modal */}
+      {showAddUser && currentTeam && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full">
             <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-slate-800">Invite User to Team</h3>
+              <h3 className="text-lg font-semibold text-slate-800">Add User to Team</h3>
               <button
-                onClick={() => setShowInviteUser(false)}
+                onClick={() => setShowAddUser(false)}
                 className="text-slate-500 hover:text-slate-700"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <form onSubmit={handleInviteUser} className="p-6 space-y-4">
+            <form onSubmit={handleAddUserToTeam} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Email Address *
+                  Select User *
                 </label>
-                <input
-                  type="email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
+                <select
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
-                  placeholder="Enter email address"
                   required
-                />
+                >
+                  <option value="">Choose a user...</option>
+                  {availableUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.email}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Role *
                 </label>
                 <select
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value as TeamRole)}
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value as TeamRole)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
                 >
                   <option value="viewer">Viewer - Can view jobs and reports</option>
@@ -468,7 +558,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ onViewChange, onTeamSel
               <div className="flex justify-end space-x-3">
                 <button
                   type="button"
-                  onClick={() => setShowInviteUser(false)}
+                  onClick={() => setShowAddUser(false)}
                   className="px-4 py-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors duration-200"
                 >
                   Cancel
@@ -477,7 +567,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ onViewChange, onTeamSel
                   type="submit"
                   className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors duration-200"
                 >
-                  Send Invitation
+                  Add User
                 </button>
               </div>
             </form>

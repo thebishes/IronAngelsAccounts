@@ -1,10 +1,9 @@
 import { supabase } from '../lib/supabase';
-import { Team, TeamMember, TeamInvitation, UserTeamInfo, TeamRole } from '../types';
+import { Team, TeamMember, UserTeamInfo, TeamRole } from '../types';
 import { Database } from '../lib/database.types';
 
 type TeamRow = Database['public']['Tables']['teams']['Row'];
 type TeamMemberRow = Database['public']['Tables']['team_members']['Row'];
-type TeamInvitationRow = Database['public']['Tables']['team_invitations']['Row'];
 
 export const teamService = {
   // Get all teams for current user
@@ -105,7 +104,7 @@ export const teamService = {
     if (error) throw error;
   },
 
-  // Get team members
+  // Get team members with user details
   async getTeamMembers(teamId: string): Promise<TeamMember[]> {
     const { data: members, error: membersError } = await supabase
       .from('team_members')
@@ -115,118 +114,35 @@ export const teamService = {
     if (membersError) throw membersError;
     if (!members) return [];
 
-    return members.map(member => {
-      return {
-        ...member,
-        user: undefined // User email not available without additional schema setup
-      };
-    });
+    // Get user details for each member
+    const userIds = members.map(m => m.user_id);
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('id, email')
+      .in('id', userIds);
+
+    if (usersError) throw usersError;
+
+    return members.map(member => ({
+      ...member,
+      user: users?.find(u => u.id === member.user_id)
+    }));
   },
 
-  // Invite user to team
-  async inviteToTeam(teamId: string, email: string, role: TeamRole = 'viewer'): Promise<TeamInvitation> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !session.user) throw new Error('User not authenticated');
-
-    // Get team details for the email
-    const { data: team, error: teamError } = await supabase
-      .from('teams')
-      .select('name')
-      .eq('id', teamId)
-      .single();
-
-    if (teamError) throw teamError;
-
+  // Add user to team directly (no invitation)
+  async addUserToTeam(teamId: string, userId: string, role: TeamRole = 'viewer'): Promise<TeamMember> {
     const { data, error } = await supabase
-      .from('team_invitations')
+      .from('team_members')
       .insert({
         team_id: teamId,
-        email,
-        role,
-        invited_by: session.user.id
+        user_id: userId,
+        role
       })
       .select()
       .single();
 
     if (error) throw error;
-
-    // Send invitation email via edge function
-    try {
-      const emailResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-team-invitation`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          teamName: team.name,
-          inviterEmail: session.user.email,
-          inviteeEmail: email,
-          role,
-          invitationId: data.id
-        }),
-      });
-
-      if (!emailResponse.ok) {
-        console.warn('Failed to send invitation email:', await emailResponse.text());
-      }
-    } catch (emailError) {
-      console.warn('Error sending invitation email:', emailError);
-      // Don't throw here - the invitation was created successfully
-    }
-
     return data;
-  },
-
-  // Get team invitations
-  async getTeamInvitations(teamId: string): Promise<TeamInvitation[]> {
-    const { data, error } = await supabase
-      .from('team_invitations')
-      .select('*')
-      .eq('team_id', teamId)
-      .is('accepted_at', null)
-      .gt('expires_at', new Date().toISOString());
-
-    if (error) throw error;
-    return data;
-  },
-
-  // Accept team invitation
-  async acceptInvitation(invitationId: string): Promise<void> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !session.user) throw new Error('User not authenticated');
-
-    // Get invitation details
-    const { data: invitation, error: inviteError } = await supabase
-      .from('team_invitations')
-      .select('*')
-      .eq('id', invitationId)
-      .eq('email', session.user.email)
-      .is('accepted_at', null)
-      .gt('expires_at', new Date().toISOString())
-      .single();
-
-    if (inviteError) throw inviteError;
-    if (!invitation) throw new Error('Invalid or expired invitation');
-
-    // Add user to team
-    const { error: memberError } = await supabase
-      .from('team_members')
-      .insert({
-        team_id: invitation.team_id,
-        user_id: session.user.id,
-        role: invitation.role
-      });
-
-    if (memberError) throw memberError;
-
-    // Mark invitation as accepted
-    const { error: updateError } = await supabase
-      .from('team_invitations')
-      .update({ accepted_at: new Date().toISOString() })
-      .eq('id', invitationId);
-
-    if (updateError) throw updateError;
   },
 
   // Update team member role
@@ -247,46 +163,5 @@ export const teamService = {
       .eq('id', memberId);
 
     if (error) throw error;
-  },
-
-  // Cancel invitation
-  async cancelInvitation(invitationId: string): Promise<void> {
-    const { error } = await supabase
-      .from('team_invitations')
-      .delete()
-      .eq('id', invitationId);
-
-    if (error) throw error;
-  },
-
-  // Get user's pending invitations
-  async getUserInvitations(): Promise<TeamInvitation[]> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !session.user) throw new Error('User not authenticated');
-
-    const { data: invitations, error: invitationsError } = await supabase
-      .from('team_invitations')
-      .select('id, team_id, email, role, invited_by, expires_at, accepted_at, created_at')
-      .eq('email', session.user.email)
-      .is('accepted_at', null)
-      .gt('expires_at', new Date().toISOString());
-
-    if (invitationsError) throw invitationsError;
-    if (!invitations) return [];
-
-    // Get team names separately
-    const teamIds = invitations.map(inv => inv.team_id);
-    const { data: teams, error: teamsError } = await supabase
-      .from('teams')
-      .select('id, name')
-      .in('id', teamIds);
-
-    if (teamsError) throw teamsError;
-
-    // Combine the data
-    return invitations.map(invitation => ({
-      ...invitation,
-      teams: teams?.find(t => t.id === invitation.team_id)
-    }));
   }
 };
