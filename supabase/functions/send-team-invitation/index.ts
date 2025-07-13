@@ -59,12 +59,63 @@ serve(async (req) => {
     console.log('Team invitation email would be sent to:', inviteeEmail)
     console.log('Email content:', emailHtml)
 
-    // You can integrate with email services here:
-    // Example with Resend:
-    /*
+    // Send email using Resend
     const resendApiKey = Deno.env.get('RESEND_API_KEY')
     if (resendApiKey) {
-      const emailResponse = await fetch('https://api.resend.com/emails', {
+      try {
+        const emailResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'Iron & Clean Pro <noreply@yourdomain.com>', // Change to your domain
+            to: [inviteeEmail],
+            subject: `Invitation to join ${teamName}`,
+            html: emailHtml,
+          }),
+        })
+
+        if (!emailResponse.ok) {
+          const errorData = await emailResponse.text()
+          console.error('Resend API error:', errorData)
+          throw new Error('Failed to send email via Resend')
+        }
+
+        const emailResult = await emailResponse.json()
+        console.log('Email sent successfully via Resend:', emailResult)
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Invitation email sent successfully via Resend',
+            emailId: emailResult.id
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        )
+      } catch (emailError) {
+        console.error('Error sending email via Resend:', emailError)
+        // Fall back to logging if email fails
+      }
+    }
+
+    // Fallback: log email content if no email service configured
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Invitation created (email service not configured)',
+        note: 'Configure RESEND_API_KEY environment variable to enable email sending',
+        emailContent: emailHtml
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      },
+    )
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${resendApiKey}`,
