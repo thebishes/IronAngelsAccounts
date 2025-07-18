@@ -109,10 +109,16 @@ const Dashboard: React.FC<DashboardProps> = ({ jobs, onViewChange }) => {
                       {job.notes && (
                         <span className="text-xs text-slate-400">•</span>
                       )}
+                     {job.invoiceNumber && (
+                       <>
+                         <span className="text-xs text-slate-400">•</span>
+                         <span className="text-xs text-slate-500 font-mono">#{job.invoiceNumber}</span>
+                       </>
+                     )}
                     </div>
                     {job.notes && (
                       <p className="text-xs text-slate-400 mt-1 leading-tight truncate max-w-xs">
-                        {job.notes}
+                        {job.notes} {job.invoiceNumber && <span className="font-mono">#{job.invoiceNumber}</span>}
                       </p>
                     )}
                   </div>
