@@ -103,6 +103,7 @@ export interface Database {
           updated_at: string
           user_id: string
           team_id: string | null
+          invoice_number: string | null
         }
         Insert: {
           id?: string
@@ -116,6 +117,7 @@ export interface Database {
           updated_at?: string
           user_id: string
           team_id?: string | null
+          invoice_number?: string | null
         }
         Update: {
           id?: string
@@ -129,6 +131,7 @@ export interface Database {
           updated_at?: string
           user_id?: string
           team_id?: string | null
+          invoice_number?: string | null
         }
       }
       job_items: {

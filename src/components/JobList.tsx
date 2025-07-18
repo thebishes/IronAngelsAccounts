@@ -139,6 +139,7 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
                     Date
                   </button>
                 </th>
+                <th className="text-left py-3 px-4 font-medium text-slate-700">Invoice#</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-700">
                   <button
                     onClick={() => handleSort('client')}
@@ -168,6 +169,9 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
                 <tr key={job.id} className="hover:bg-slate-50 transition-colors duration-200">
                   <td className="py-4 px-4 text-sm text-slate-600">
                     {formatDateUK(job.date)}
+                  </td>
+                  <td className="py-4 px-4 text-sm font-mono text-slate-800">
+                    {job.invoiceNumber || 'N/A'}
                   </td>
                   <td className="py-4 px-4 text-sm font-medium text-slate-800">
                     {job.clientName}
@@ -246,6 +250,10 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
                 <div>
                   <label className="block text-sm font-medium text-slate-600">Client</label>
                   <p className="text-slate-800">{selectedJob.clientName}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-600">Invoice#</label>
+                  <p className="text-slate-800 font-mono">{selectedJob.invoiceNumber || 'N/A'}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-600">Date</label>

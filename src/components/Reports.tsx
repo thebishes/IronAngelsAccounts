@@ -66,9 +66,10 @@ const Reports: React.FC<ReportsProps> = ({ jobs }) => {
   }, [filteredJobs]);
 
   const exportToCSV = () => {
-    const headers = ['Date', 'Client', 'Type', 'Status', 'Items', 'Total'];
+    const headers = ['Date', 'Invoice#', 'Client', 'Type', 'Status', 'Items', 'Total'];
     const rows = filteredJobs.map(job => [
       new Date(job.date).toLocaleDateString(),
+      job.invoiceNumber || 'N/A',
       job.clientName,
       job.type,
       job.status,

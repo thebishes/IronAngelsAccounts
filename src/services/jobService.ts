@@ -16,6 +16,7 @@ const convertJobRowToJob = (jobRow: JobRow, items: JobItemRow[]): Job => {
     status: jobRow.status,
     notes: jobRow.notes || undefined,
     createdAt: jobRow.created_at,
+    invoiceNumber: jobRow.invoice_number || undefined,
     items: items.map(item => ({
       id: item.id,
       description: item.description,

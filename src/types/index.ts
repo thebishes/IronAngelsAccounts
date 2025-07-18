@@ -16,6 +16,7 @@ export interface Job {
   status: 'completed' | 'pending' | 'invoiced';
   notes?: string;
   createdAt: string;
+  invoiceNumber?: string;
 }
 
 export interface ReportFilters {
