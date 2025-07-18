@@ -418,10 +418,10 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
 
                 {/* Footer */}
                 <div className="border-t border-slate-200 pt-6 text-center text-sm text-slate-600">
-                  <p>Thank you for your business!</p>
+                  
                   <p className="mt-2">
                     <p>Thank you for your custom, we appreciate it. </p>
-
+<p></p>
 
 <p>If you appreciate our services and would like to leave a public comment for our social media, please WhatsApp us.</p>
 
