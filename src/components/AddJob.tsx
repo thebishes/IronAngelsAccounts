@@ -323,5 +323,3 @@ const AddJob: React.FC<AddJobProps> = ({ onAddJob, onViewChange, editingJob }) =
 };
 
 export default AddJob;
-  )
-}
