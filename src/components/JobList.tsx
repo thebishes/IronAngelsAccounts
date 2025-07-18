@@ -180,10 +180,25 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
       '',
       'If you appreciate our services and would like to leave a public comment for our social media, please WhatsApp us.',
       '',
-      'Payment terms: Please pay on day of invoice receipt.'
+      'Payment terms: Please pay on day of invoice receipt.',
+      '',
+      'Payment Details:',
+      'Please quote your invoice number',
+      'Account number: 64862237',
+      'Sort code: 60-83-71'
     ];
     
     footerText.forEach((line) => {
+      if (line === 'Payment Details:') {
+        pdf.setFontSize(9);
+        pdf.setTextColor(51, 65, 85); // Darker color for header
+      } else if (line.includes('Account number:') || line.includes('Sort code:') || line.includes('Please quote your invoice number')) {
+        pdf.setFontSize(8);
+        pdf.setTextColor(0, 0, 0); // Black for payment details
+      } else {
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 100, 100); // Grey for other text
+      }
       pdf.text(line, pageWidth / 2, yPosition, { align: 'center' });
       yPosition += 5;
     });
@@ -566,6 +581,13 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
 <p>If you appreciate our services and would like to leave a public comment for our social media, please WhatsApp us.</p>
 
                   <p>  Payment terms: Please pay on day of invoice receipt.</p>
+                  
+                  <div className="mt-4 pt-3 border-t border-slate-200">
+                    <p className="font-semibold text-slate-700 mb-2">Payment Details:</p>
+                    <p>Please quote your invoice number</p>
+                    <p>Account number: 64862237</p>
+                    <p>Sort code: 60-83-71</p>
+                  </div>
                   </p>
                 </div>
               </div>
