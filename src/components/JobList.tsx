@@ -420,7 +420,7 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
                 <div className="border-t border-slate-200 pt-6 text-center text-sm text-slate-600">
                   <p>Thank you for your business!</p>
                   <p className="mt-2">
-                    Payment terms: Due within 30 days of invoice date
+                    Payment terms: Please pay on day of invoice receipt.
                   </p>
                 </div>
               </div>
