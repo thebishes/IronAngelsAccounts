@@ -96,8 +96,6 @@ const AddJob: React.FC<AddJobProps> = ({ onAddJob, onViewChange, editingJob }) =
       setType('ironing');
       setNotes('');
       setStatus('completed');
-      const currentYear = new Date().getFullYear();
-      setInvoiceNumber(`${currentYear}-0000`);
       setItems([{ id: '1', description: '', quantity: 1, price: 0, total: 0 }]);
     }
     
