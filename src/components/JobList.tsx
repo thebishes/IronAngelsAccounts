@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Job } from '../types';
-import { Search, Eye, Edit, Trash2, Calendar, User, PoundSterling } from 'lucide-react';
+import { Search, Eye, Edit, Trash2, Calendar, User, PoundSterling, FileText } from 'lucide-react';
 import { formatDateUK } from '../utils/dateUtils';
 
 interface JobListProps {
@@ -15,6 +15,7 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [filterType, setFilterType] = useState<'all' | 'ironing' | 'cleaning' | 'both'>('all');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [invoiceJob, setInvoiceJob] = useState<Job | null>(null);
 
   const filteredJobs = jobs
     .filter(job => {
@@ -58,6 +59,10 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
       setSortBy(field);
       setSortOrder('desc');
     }
+  };
+
+  const handlePrintInvoice = () => {
+    window.print();
   };
 
   const getStatusColor = (status: Job['status']) => {
@@ -207,6 +212,13 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
+                        onClick={() => setInvoiceJob(job)}
+                        className="p-1 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors duration-200"
+                        title="Generate Invoice"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </button>
+                      <button
                         onClick={() => {
                           if (window.confirm('Are you sure you want to delete this job?')) {
                             onDeleteJob(job.id);
@@ -297,6 +309,118 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-medium text-slate-700">Total Amount:</span>
                   <span className="text-2xl font-bold text-slate-800">£{selectedJob.total.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice Modal */}
+      {invoiceJob && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center print:hidden">
+              <h3 className="text-lg font-semibold text-slate-800">Invoice</h3>
+              <div className="flex space-x-3">
+                <button
+                  onClick={handlePrintInvoice}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors duration-200"
+                >
+                  Print Invoice
+                </button>
+                <button
+                  onClick={() => setInvoiceJob(null)}
+                  className="text-slate-500 hover:text-slate-700"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            
+            {/* Invoice Content */}
+            <div className="p-8 print:p-0">
+              <div className="max-w-3xl mx-auto bg-white">
+                {/* Header */}
+                <div className="text-center mb-8">
+                  <h1 className="text-3xl font-bold text-slate-800 mb-2">
+                    {invoiceJob.invoicingCompany || 'Cleaning Angels'}
+                  </h1>
+                  <div className="text-slate-600">
+                    <p>Professional Cleaning & Ironing Services</p>
+                    <p>Email: info@{(invoiceJob.invoicingCompany || 'Cleaning Angels').toLowerCase().replace(' ', '')}.co.uk</p>
+                    <p>Phone: 07123 456789</p>
+                  </div>
+                </div>
+
+                {/* Invoice Details */}
+                <div className="grid grid-cols-2 gap-8 mb-8">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-800 mb-3">Bill To:</h3>
+                    <div className="text-slate-700">
+                      <p className="font-medium">{invoiceJob.clientName}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="mb-4">
+                      <h2 className="text-2xl font-bold text-slate-800 mb-2">INVOICE</h2>
+                      <p className="text-slate-600">Invoice #: {invoiceJob.invoiceNumber || 'N/A'}</p>
+                      <p className="text-slate-600">Date: {formatDateUK(invoiceJob.date)}</p>
+                      <p className="text-slate-600">Status: <span className="capitalize">{invoiceJob.status}</span></p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Service Details */}
+                <div className="mb-8">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b-2 border-slate-300">
+                        <th className="text-left py-3 px-2 font-semibold text-slate-800">Description</th>
+                        <th className="text-center py-3 px-2 font-semibold text-slate-800">Qty</th>
+                        <th className="text-right py-3 px-2 font-semibold text-slate-800">Rate</th>
+                        <th className="text-right py-3 px-2 font-semibold text-slate-800">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoiceJob.items.map((item, index) => (
+                        <tr key={item.id} className="border-b border-slate-200">
+                          <td className="py-3 px-2 text-slate-700">{item.description}</td>
+                          <td className="py-3 px-2 text-center text-slate-700">{item.quantity}</td>
+                          <td className="py-3 px-2 text-right text-slate-700">£{item.price.toFixed(2)}</td>
+                          <td className="py-3 px-2 text-right text-slate-700">£{item.total.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Total */}
+                <div className="flex justify-end mb-8">
+                  <div className="w-64">
+                    <div className="border-t-2 border-slate-300 pt-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xl font-bold text-slate-800">Total:</span>
+                        <span className="text-2xl font-bold text-slate-800">£{invoiceJob.total.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                {invoiceJob.notes && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-2">Notes:</h3>
+                    <p className="text-slate-700">{invoiceJob.notes}</p>
+                  </div>
+                )}
+
+                {/* Footer */}
+                <div className="border-t border-slate-200 pt-6 text-center text-sm text-slate-600">
+                  <p>Thank you for your business!</p>
+                  <p className="mt-2">
+                    Payment terms: Due within 30 days of invoice date
+                  </p>
                 </div>
               </div>
             </div>

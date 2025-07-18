@@ -1,3 +1,32 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Print styles for invoice */
+@media print {
+  .print\:hidden {
+    display: none !important;
+  }
+  
+  .print\:p-0 {
+    padding: 0 !important;
+  }
+  
+  body * {
+    visibility: hidden;
+  }
+  
+  .fixed.inset-0 * {
+    visibility: visible;
+  }
+  
+  .fixed.inset-0 {
+    position: static !important;
+    background: white !important;
+  }
+  
+  @page {
+    margin: 1in;
+    size: A4;
+  }
+}
