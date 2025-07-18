@@ -339,15 +339,15 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
             </div>
             
             {/* Invoice Content */}
-            <div className="p-8 print:p-0">
-              <div className="max-w-3xl mx-auto bg-white">
+            <div className="p-6 print:p-0">
+              <div className="max-w-4xl mx-auto bg-white">
                 {/* Header */}
-                <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold mb-2" style={{ color: '#be185d' }}>
+                <div className="text-center mb-6">
+                  <h1 className="text-2xl font-bold mb-1" style={{ color: '#be185d' }}>
                     {invoiceJob.invoicingCompany || 'Cleaning Angels'}
                     <span className="text-slate-500 italic"> by Hayley</span>
                   </h1>
-                  <div className="text-slate-600">
+                  <div className="text-slate-600 text-sm">
                     <p>Professional Cleaning & Ironing Services</p>
                     <p>Email: info@{(invoiceJob.invoicingCompany || 'Cleaning Angels').toLowerCase().replace(' ', '')}.co.uk</p>
                     <p>Phone: 07901 611906</p>
@@ -355,41 +355,41 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
                 </div>
 
                 {/* Invoice Details */}
-                <div className="grid grid-cols-2 gap-8 mb-8">
+                <div className="grid grid-cols-2 gap-6 mb-6">
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-800 mb-3">Bill To:</h3>
+                    <h3 className="text-base font-semibold text-slate-800 mb-2">Bill To:</h3>
                     <div className="text-slate-700">
                       <p className="font-medium">{invoiceJob.clientName}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="mb-4">
-                      <h2 className="text-2xl font-bold text-slate-800 mb-2">INVOICE</h2>
-                      <p className="text-slate-600">Invoice #: {invoiceJob.invoiceNumber || 'N/A'}</p>
-                      <p className="text-slate-600">Date: {formatDateUK(invoiceJob.date)}</p>
-                      <p className="text-slate-600">Status: <span className="capitalize">{invoiceJob.status}</span></p>
+                    <div className="mb-3">
+                      <h2 className="text-xl font-bold text-slate-800 mb-1">INVOICE</h2>
+                      <p className="text-sm text-slate-600">Invoice #: {invoiceJob.invoiceNumber || 'N/A'}</p>
+                      <p className="text-sm text-slate-600">Date: {formatDateUK(invoiceJob.date)}</p>
+                      <p className="text-sm text-slate-600">Status: <span className="capitalize">{invoiceJob.status}</span></p>
                     </div>
                   </div>
                 </div>
 
                 {/* Service Details */}
-                <div className="mb-8">
+                <div className="mb-6">
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b-2 border-slate-300">
-                        <th className="text-left py-3 px-2 font-semibold text-slate-800">Description</th>
-                        <th className="text-center py-3 px-2 font-semibold text-slate-800">Qty</th>
-                        <th className="text-right py-3 px-2 font-semibold text-slate-800">Rate</th>
-                        <th className="text-right py-3 px-2 font-semibold text-slate-800">Amount</th>
+                        <th className="text-left py-2 px-2 font-semibold text-slate-800 text-sm">Description</th>
+                        <th className="text-center py-2 px-2 font-semibold text-slate-800 text-sm">Qty</th>
+                        <th className="text-right py-2 px-2 font-semibold text-slate-800 text-sm">Rate</th>
+                        <th className="text-right py-2 px-2 font-semibold text-slate-800 text-sm">Amount</th>
                       </tr>
                     </thead>
                     <tbody>
                       {invoiceJob.items.map((item, index) => (
                         <tr key={item.id} className="border-b border-slate-200">
-                          <td className="py-3 px-2 text-slate-700">{item.description}</td>
-                          <td className="py-3 px-2 text-center text-slate-700">{item.quantity}</td>
-                          <td className="py-3 px-2 text-right text-slate-700">£{item.price.toFixed(2)}</td>
-                          <td className="py-3 px-2 text-right text-slate-700">£{item.total.toFixed(2)}</td>
+                          <td className="py-2 px-2 text-slate-700 text-sm">{item.description}</td>
+                          <td className="py-2 px-2 text-center text-slate-700 text-sm">{item.quantity}</td>
+                          <td className="py-2 px-2 text-right text-slate-700 text-sm">£{item.price.toFixed(2)}</td>
+                          <td className="py-2 px-2 text-right text-slate-700 text-sm">£{item.total.toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -397,12 +397,12 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
                 </div>
 
                 {/* Total */}
-                <div className="flex justify-end mb-8">
+                <div className="flex justify-end mb-6">
                   <div className="w-64">
-                    <div className="border-t-2 border-slate-300 pt-4">
+                    <div className="border-t-2 border-slate-300 pt-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-xl font-bold text-slate-800">Total:</span>
-                        <span className="text-2xl font-bold text-slate-800">£{invoiceJob.total.toFixed(2)}</span>
+                        <span className="text-lg font-bold text-slate-800">Total:</span>
+                        <span className="text-xl font-bold text-slate-800">£{invoiceJob.total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -410,14 +410,14 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
 
                 {/* Notes */}
                 {invoiceJob.notes && (
-                  <div className="mb-8">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-2">Notes:</h3>
-                    <p className="text-slate-700">{invoiceJob.notes}</p>
+                  <div className="mb-6">
+                    <h3 className="text-base font-semibold text-slate-800 mb-1">Notes:</h3>
+                    <p className="text-slate-700 text-sm">{invoiceJob.notes}</p>
                   </div>
                 )}
 
                 {/* Footer */}
-                <div className="border-t border-slate-200 pt-6 text-center text-sm text-slate-600">
+                <div className="border-t border-slate-200 pt-4 text-center text-xs text-slate-600">
                   
                   <p className="mt-2">
                     <p>Thank you for your custom, we appreciate it. </p>
