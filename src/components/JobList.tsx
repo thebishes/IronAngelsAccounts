@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Job } from '../types';
 import { Search, Eye, Edit, Trash2, Calendar, User, PoundSterling, FileText } from 'lucide-react';
 import { formatDateUK } from '../utils/dateUtils';
+import jsPDF from 'jspdf';
 
 interface JobListProps {
   jobs: Job[];
@@ -65,6 +66,131 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
     window.print();
   };
 
+  const handleExportPDF = (job: Job) => {
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 20;
+    let yPosition = 30;
+
+    // Company Header
+    pdf.setFontSize(20);
+    pdf.setTextColor(190, 24, 93); // Dark pink color
+    const companyName = job.invoicingCompany || 'Cleaning Angels';
+    pdf.text(companyName, pageWidth / 2, yPosition, { align: 'center' });
+    
+    pdf.setFontSize(12);
+    pdf.setTextColor(100, 116, 139); // Grey color
+    pdf.text('by Hayley', pageWidth / 2 + pdf.getTextWidth(companyName) / 2 + 5, yPosition);
+    
+    yPosition += 10;
+    pdf.setFontSize(10);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text('Professional Cleaning & Ironing Services', pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 6;
+    pdf.text(`Email: info@${companyName.toLowerCase().replace(' ', '')}.co.uk`, pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 6;
+    pdf.text('Phone: 07901 611906', pageWidth / 2, yPosition, { align: 'center' });
+    
+    yPosition += 20;
+
+    // Invoice Title
+    pdf.setFontSize(16);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text('INVOICE', pageWidth - margin, yPosition, { align: 'right' });
+    
+    yPosition += 10;
+    pdf.setFontSize(10);
+    pdf.text(`Invoice #: ${job.invoiceNumber || 'N/A'}`, pageWidth - margin, yPosition, { align: 'right' });
+    yPosition += 6;
+    pdf.text(`Date: ${formatDateUK(job.date)}`, pageWidth - margin, yPosition, { align: 'right' });
+    yPosition += 6;
+    pdf.text(`Status: ${job.status}`, pageWidth - margin, yPosition, { align: 'right' });
+    
+    // Bill To
+    yPosition += 15;
+    pdf.setFontSize(12);
+    pdf.text('Bill To:', margin, yPosition);
+    yPosition += 8;
+    pdf.setFontSize(10);
+    pdf.text(job.clientName, margin, yPosition);
+    
+    yPosition += 20;
+
+    // Table Header
+    pdf.setFontSize(10);
+    pdf.setTextColor(0, 0, 0);
+    const tableStartY = yPosition;
+    const colWidths = [80, 25, 30, 35];
+    const colPositions = [margin, margin + colWidths[0], margin + colWidths[0] + colWidths[1], margin + colWidths[0] + colWidths[1] + colWidths[2]];
+    
+    // Header background
+    pdf.setFillColor(240, 240, 240);
+    pdf.rect(margin, yPosition - 2, pageWidth - 2 * margin, 10, 'F');
+    
+    pdf.text('Description', colPositions[0], yPosition + 5);
+    pdf.text('Qty', colPositions[1], yPosition + 5, { align: 'center' });
+    pdf.text('Rate', colPositions[2], yPosition + 5, { align: 'right' });
+    pdf.text('Amount', colPositions[3], yPosition + 5, { align: 'right' });
+    
+    yPosition += 15;
+
+    // Table Rows
+    job.items.forEach((item, index) => {
+      if (index % 2 === 0) {
+        pdf.setFillColor(248, 250, 252);
+        pdf.rect(margin, yPosition - 2, pageWidth - 2 * margin, 10, 'F');
+      }
+      
+      pdf.text(item.description, colPositions[0], yPosition + 5);
+      pdf.text(item.quantity.toString(), colPositions[1], yPosition + 5, { align: 'center' });
+      pdf.text(`£${item.price.toFixed(2)}`, colPositions[2], yPosition + 5, { align: 'right' });
+      pdf.text(`£${item.total.toFixed(2)}`, colPositions[3], yPosition + 5, { align: 'right' });
+      
+      yPosition += 12;
+    });
+
+    // Total
+    yPosition += 10;
+    pdf.setDrawColor(0, 0, 0);
+    pdf.line(margin + colWidths[0] + colWidths[1], yPosition, pageWidth - margin, yPosition);
+    yPosition += 10;
+    
+    pdf.setFontSize(12);
+    pdf.text('Total:', pageWidth - margin - 40, yPosition);
+    pdf.text(`£${job.total.toFixed(2)}`, pageWidth - margin, yPosition, { align: 'right' });
+    
+    // Notes
+    if (job.notes) {
+      yPosition += 20;
+      pdf.setFontSize(10);
+      pdf.text('Notes:', margin, yPosition);
+      yPosition += 8;
+      const splitNotes = pdf.splitTextToSize(job.notes, pageWidth - 2 * margin);
+      pdf.text(splitNotes, margin, yPosition);
+      yPosition += splitNotes.length * 5;
+    }
+    
+    // Footer
+    yPosition += 20;
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 100, 100);
+    const footerText = [
+      'Thank you for your custom, we appreciate it.',
+      '',
+      'If you appreciate our services and would like to leave a public comment for our social media, please WhatsApp us.',
+      '',
+      'Payment terms: Please pay on day of invoice receipt.'
+    ];
+    
+    footerText.forEach((line) => {
+      pdf.text(line, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 5;
+    });
+
+    // Save the PDF
+    const fileName = `invoice-${job.invoiceNumber || job.id}-${job.clientName.replace(/\s+/g, '-')}.pdf`;
+    pdf.save(fileName);
+  };
   const getStatusColor = (status: Job['status']) => {
     switch (status) {
       case 'completed':
@@ -219,6 +345,13 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
                         <FileText className="h-4 w-4" />
                       </button>
                       <button
+                        onClick={() => handleExportPDF(job)}
+                        className="p-1 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors duration-200"
+                        title="Export PDF"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </button>
+                      <button
                         onClick={() => {
                           if (window.confirm('Are you sure you want to delete this job?')) {
                             onDeleteJob(job.id);
@@ -328,6 +461,12 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
                   className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors duration-200"
                 >
                   Print Invoice
+                </button>
+                <button
+                  onClick={() => handleExportPDF(invoiceJob)}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors duration-200"
+                >
+                  Export PDF
                 </button>
                 <button
                   onClick={() => setInvoiceJob(null)}
