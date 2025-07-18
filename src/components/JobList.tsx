@@ -88,7 +88,7 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
     pdf.setTextColor(0, 0, 0);
     pdf.text('Professional Cleaning & Ironing Services', pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 6;
-    pdf.text(`Email: info@${companyName.toLowerCase().replace(' ', '')}.co.uk`, pageWidth / 2, yPosition, { align: 'center' });
+    pdf.text(`Email: info@${companyName.toLowerCase().replace(' ', '')}.uk`, pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 6;
     pdf.text('Phone: 07901 611906', pageWidth / 2, yPosition, { align: 'center' });
     
@@ -489,7 +489,7 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
                   <p className="text-slate-500 italic text-lg mb-1">by Hayley</p>
                   <div className="text-slate-600 text-sm">
                     <p>Professional Cleaning & Ironing Services</p>
-                    <p>Email: info@{(invoiceJob.invoicingCompany || 'Cleaning Angels').toLowerCase().replace(' ', '')}.co.uk</p>
+                    <p>Email: info@{(invoiceJob.invoicingCompany || 'Cleaning Angels').toLowerCase().replace(' ', '')}.uk</p>
                     <p>Phone: 07901 611906</p>
                   </div>
                 </div>
