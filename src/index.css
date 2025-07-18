@@ -4,29 +4,46 @@
 
 /* Print styles for invoice */
 @media print {
+  /* Hide elements with Tailwind-style print:hidden */
   .print\:hidden {
     display: none !important;
   }
-  
+
+  /* Remove padding if needed */
   .print\:p-0 {
     padding: 0 !important;
   }
-  
+
+  /* Reset body layout for printing */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Ensure only the invoice content is printed */
+  .print-container {
+    display: block;
+    position: relative !important;
+    visibility: visible !important;
+  }
+
+  /* Optional: Hide everything else */
   body * {
     visibility: hidden;
   }
-  
-  .fixed.inset-0 * {
+
+  .print-container, .print-container * {
     visibility: visible;
   }
-  
-  .fixed.inset-0 {
+
+  /* Fix layout issues caused by position fixed */
+  .print-container {
     position: static !important;
-    background: white !important;
   }
-  
+
+  /* Set A4 page size and margins */
   @page {
-    margin: 0.5in;
     size: A4;
+    margin: 0.5in;
   }
 }
