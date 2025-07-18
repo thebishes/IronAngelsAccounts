@@ -345,7 +345,7 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
                 <div className="text-center mb-8">
                   <h1 className="text-3xl font-bold mb-2" style={{ color: '#be185d' }}>
                     {invoiceJob.invoicingCompany || 'Cleaning Angels'}
-                    <span className="text-slate-800"> by Hayley</span>
+                    <span className="text-slate-500 italic"> by Hayley</span>
                   </h1>
                   <div className="text-slate-600">
                     <p>Professional Cleaning & Ironing Services</p>
