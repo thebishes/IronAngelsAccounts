@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save } from 'lucide-react';
+import { Plus, Trash2, Save, ChevronDown } from 'lucide-react';
 import { Job, JobItem } from '../types';
+import { jobService } from '../services/jobService';
 
 interface AddJobProps {
   onAddJob: (job: Job) => void;
@@ -10,6 +11,9 @@ interface AddJobProps {
 
 const AddJob: React.FC<AddJobProps> = ({ onAddJob, onViewChange, editingJob }) => {
   const [clientName, setClientName] = useState('');
+  const [clientSuggestions, setClientSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [allClientNames, setAllClientNames] = useState<string[]>([]);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [type, setType] = useState<'ironing' | 'cleaning' | 'both'>('ironing');
   const [notes, setNotes] = useState('');
@@ -18,6 +22,20 @@ const AddJob: React.FC<AddJobProps> = ({ onAddJob, onViewChange, editingJob }) =
   const [items, setItems] = useState<JobItem[]>([
     { id: '1', description: '', quantity: 1, price: 0, total: 0 }
   ]);
+
+  // Load existing client names on component mount
+  useEffect(() => {
+    const loadClientNames = async () => {
+      try {
+        const jobs = await jobService.getAllJobs();
+        const uniqueClients = [...new Set(jobs.map(job => job.clientName))].sort();
+        setAllClientNames(uniqueClients);
+      } catch (error) {
+        console.error('Error loading client names:', error);
+      }
+    };
+    loadClientNames();
+  }, []);
 
   useEffect(() => {
     if (editingJob) {
@@ -34,6 +52,21 @@ const AddJob: React.FC<AddJobProps> = ({ onAddJob, onViewChange, editingJob }) =
       setInvoiceNumber(`${currentYear}-0000`);
     }
   }, [editingJob]);
+
+  // Filter suggestions based on input
+  useEffect(() => {
+    if (clientName.trim() && allClientNames.length > 0) {
+      const filtered = allClientNames.filter(name =>
+        name.toLowerCase().includes(clientName.toLowerCase()) &&
+        name.toLowerCase() !== clientName.toLowerCase()
+      );
+      setClientSuggestions(filtered);
+      setShowSuggestions(filtered.length > 0);
+    } else {
+      setClientSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }, [clientName, allClientNames]);
 
   const addItem = () => {
     const newItem: JobItem = {
@@ -63,6 +96,15 @@ const AddJob: React.FC<AddJobProps> = ({ onAddJob, onViewChange, editingJob }) =
       }
       return item;
     }));
+  };
+
+  const handleClientNameChange = (value: string) => {
+    setClientName(value);
+  };
+
+  const selectSuggestion = (suggestion: string) => {
+    setClientName(suggestion);
+    setShowSuggestions(false);
   };
 
   const totalAmount = items.reduce((sum, item) => sum + item.total, 0);
@@ -113,18 +155,41 @@ const AddJob: React.FC<AddJobProps> = ({ onAddJob, onViewChange, editingJob }) =
         
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Client Name *
               </label>
               <input
                 type="text"
                 value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
+                onChange={(e) => handleClientNameChange(e.target.value)}
+                onFocus={() => {
+                  if (clientSuggestions.length > 0) {
+                    setShowSuggestions(true);
+                  }
+                }}
+                onBlur={() => {
+                  // Delay hiding suggestions to allow clicking on them
+                  setTimeout(() => setShowSuggestions(false), 200);
+                }}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
                 placeholder="Enter client name"
                 required
               />
+              {showSuggestions && clientSuggestions.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {clientSuggestions.slice(0, 10).map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => selectSuggestion(suggestion)}
+                      className="w-full text-left px-3 py-2 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none transition-colors duration-200"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             
             <div>
