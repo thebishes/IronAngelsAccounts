@@ -19,6 +19,7 @@ const AddJob: React.FC<AddJobProps> = ({ onAddJob, onViewChange, editingJob }) =
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState<'completed' | 'pending' | 'invoiced'>('completed');
   const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [invoicingCompany, setInvoicingCompany] = useState<'Cleaning Angels' | 'Ironing Angels'>('Cleaning Angels');
   const [items, setItems] = useState<JobItem[]>([
     { id: '1', description: '', quantity: 1, price: 0, total: 0 }
   ]);
@@ -45,6 +46,7 @@ const AddJob: React.FC<AddJobProps> = ({ onAddJob, onViewChange, editingJob }) =
       setNotes(editingJob.notes || '');
       setStatus(editingJob.status);
       setInvoiceNumber(editingJob.invoiceNumber || '');
+      setInvoicingCompany(editingJob.invoicingCompany || 'Cleaning Angels');
       setItems(editingJob.items);
     } else {
       // Generate preview invoice number for new jobs
@@ -126,6 +128,7 @@ const AddJob: React.FC<AddJobProps> = ({ onAddJob, onViewChange, editingJob }) =
       total: totalAmount,
       status,
       notes: notes.trim() || undefined,
+      invoicingCompany,
       createdAt: editingJob ? editingJob.createdAt : new Date().toISOString()
     };
 
@@ -138,6 +141,8 @@ const AddJob: React.FC<AddJobProps> = ({ onAddJob, onViewChange, editingJob }) =
       setType('ironing');
       setNotes('');
       setStatus('completed');
+      setInvoicingCompany('Cleaning Angels');
+      setInvoicingCompany('Cleaning Angels');
       setItems([{ id: '1', description: '', quantity: 1, price: 0, total: 0 }]);
     }
     
@@ -240,7 +245,6 @@ const AddJob: React.FC<AddJobProps> = ({ onAddJob, onViewChange, editingJob }) =
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Status *
@@ -253,6 +257,20 @@ const AddJob: React.FC<AddJobProps> = ({ onAddJob, onViewChange, editingJob }) =
                 <option value="completed">Completed</option>
                 <option value="pending">Pending</option>
                 <option value="invoiced">Invoiced</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Invoicing Company *
+              </label>
+              <select
+                value={invoicingCompany}
+                onChange={(e) => setInvoicingCompany(e.target.value as 'Cleaning Angels' | 'Ironing Angels')}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+              >
+                <option value="Cleaning Angels">Cleaning Angels</option>
+                <option value="Ironing Angels">Ironing Angels</option>
               </select>
             </div>
           </div>

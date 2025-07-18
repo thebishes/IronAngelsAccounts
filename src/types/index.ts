@@ -17,6 +17,7 @@ export interface Job {
   notes?: string;
   createdAt: string;
   invoiceNumber?: string;
+  invoicingCompany?: 'Cleaning Angels' | 'Ironing Angels';
 }
 
 export interface ReportFilters {
