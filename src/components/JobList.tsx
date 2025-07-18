@@ -78,11 +78,12 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
     const companyName = job.invoicingCompany || 'Cleaning Angels';
     pdf.text(companyName, pageWidth / 2, yPosition, { align: 'center' });
     
+    yPosition += 8;
     pdf.setFontSize(12);
     pdf.setTextColor(100, 116, 139); // Grey color
-    pdf.text('by Hayley', pageWidth / 2 + pdf.getTextWidth(companyName) / 2 + 5, yPosition);
+    pdf.text('by Hayley', pageWidth / 2, yPosition, { align: 'center' });
     
-    yPosition += 10;
+    yPosition += 8;
     pdf.setFontSize(10);
     pdf.setTextColor(0, 0, 0);
     pdf.text('Professional Cleaning & Ironing Services', pageWidth / 2, yPosition, { align: 'center' });
@@ -482,10 +483,10 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
               <div className="max-w-4xl mx-auto bg-white">
                 {/* Header */}
                 <div className="text-center mb-6">
-                  <h1 className="text-2xl font-bold mb-1" style={{ color: '#be185d' }}>
+                  <h1 className="text-2xl font-bold" style={{ color: '#be185d' }}>
                     {invoiceJob.invoicingCompany || 'Cleaning Angels'}
-                    <span className="text-slate-500 italic"> by Hayley</span>
                   </h1>
+                  <p className="text-slate-500 italic text-lg mb-1">by Hayley</p>
                   <div className="text-slate-600 text-sm">
                     <p>Professional Cleaning & Ironing Services</p>
                     <p>Email: info@{(invoiceJob.invoicingCompany || 'Cleaning Angels').toLowerCase().replace(' ', '')}.co.uk</p>
