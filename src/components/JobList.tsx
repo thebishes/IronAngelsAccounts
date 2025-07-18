@@ -343,13 +343,14 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
               <div className="max-w-3xl mx-auto bg-white">
                 {/* Header */}
                 <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold text-slate-800 mb-2">
+                  <h1 className="text-3xl font-bold mb-2" style={{ color: '#be185d' }}>
                     {invoiceJob.invoicingCompany || 'Cleaning Angels'}
+                    <span className="text-slate-800"> by Hayley</span>
                   </h1>
                   <div className="text-slate-600">
                     <p>Professional Cleaning & Ironing Services</p>
                     <p>Email: info@{(invoiceJob.invoicingCompany || 'Cleaning Angels').toLowerCase().replace(' ', '')}.co.uk</p>
-                    <p>Phone: 07123 456789</p>
+                    <p>Phone: 07901 611906</p>
                   </div>
                 </div>
 
