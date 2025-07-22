@@ -53,7 +53,7 @@ const Dashboard: React.FC<DashboardProps> = ({ jobs, onViewChange }) => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold text-slate-800">Dashboard</h2>
+        <h2 className="text-3xl font-bold text-slate-800">Dashboard v3.1a</h2>
         <button
           onClick={() => onViewChange('add-job')}
           className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
