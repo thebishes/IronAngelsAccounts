@@ -299,6 +299,7 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
                 <th className="text-left py-3 px-4 font-medium text-slate-700">Type</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-700">Items</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-700">Status</th>
+                <th className="text-left py-3 px-4 font-medium text-slate-700">Company</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-700">
                   <button
                     onClick={() => handleSort('total')}
@@ -333,6 +334,9 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(job.status)}`}>
                       {job.status}
                     </span>
+                  </td>
+                  <td className="py-4 px-4 text-sm text-slate-600">
+                    {job.invoicingCompany || 'Cleaning Angels'}
                   </td>
                   <td className="py-4 px-4 text-sm font-medium text-slate-800">
                     £{job.total.toFixed(2)}
