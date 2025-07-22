@@ -425,6 +425,10 @@ const JobList: React.FC<JobListProps> = ({ jobs, onDeleteJob, onEditJob }) => {
                   <p className="text-slate-800 capitalize">{selectedJob.type}</p>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-slate-600">Invoicing Company</label>
+                  <p className="text-slate-800">{selectedJob.invoicingCompany || 'Cleaning Angels'}</p>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-slate-600">Status</label>
                   <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(selectedJob.status)}`}>
                     {selectedJob.status}

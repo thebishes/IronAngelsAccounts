@@ -104,6 +104,7 @@ export interface Database {
           user_id: string
           team_id: string | null
           invoice_number: string | null
+          invoicing_company: string
         }
         Insert: {
           id?: string
@@ -118,6 +119,7 @@ export interface Database {
           user_id: string
           team_id?: string | null
           invoice_number?: string | null
+          invoicing_company?: string
         }
         Update: {
           id?: string
@@ -132,6 +134,7 @@ export interface Database {
           user_id?: string
           team_id?: string | null
           invoice_number?: string | null
+          invoicing_company?: string
         }
       }
       job_items: {

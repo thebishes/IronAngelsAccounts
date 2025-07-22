@@ -17,6 +17,7 @@ const convertJobRowToJob = (jobRow: JobRow, items: JobItemRow[]): Job => {
     notes: jobRow.notes || undefined,
     createdAt: jobRow.created_at,
     invoiceNumber: jobRow.invoice_number || undefined,
+    invoicingCompany: (jobRow.invoicing_company as 'Cleaning Angels' | 'Ironing Angels') || 'Cleaning Angels',
     items: items.map(item => ({
       id: item.id,
       description: item.description,
@@ -74,7 +75,8 @@ export const jobService = {
         status: job.status,
         notes: job.notes || null,
         user_id: session.user.id,
-        team_id: teamId || null
+        team_id: teamId || null,
+        invoicing_company: job.invoicingCompany || 'Cleaning Angels'
       })
       .select()
       .single();
@@ -122,7 +124,8 @@ export const jobService = {
         status: job.status,
         notes: job.notes || null,
         team_id: existingJob.team_id,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        invoicing_company: job.invoicingCompany || 'Cleaning Angels'
       })
       .eq('id', job.id)
       .select()
