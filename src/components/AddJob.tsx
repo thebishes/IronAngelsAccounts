@@ -251,7 +251,7 @@ const AddJob: React.FC<AddJobProps> = ({ onAddJob, onViewChange, editingJob }) =
               </label>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as 'completed' | 'pending' | 'invoiced')}
+                onChange={(e) => setStatus(e.target.value as 'completed' | 'pending' | 'invoiced'|'paid')}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
               >
                 <option value="completed">Completed</option>
