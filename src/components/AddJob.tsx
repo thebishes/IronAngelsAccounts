@@ -17,7 +17,7 @@ const AddJob: React.FC<AddJobProps> = ({ onAddJob, onViewChange, editingJob }) =
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [type, setType] = useState<'ironing' | 'cleaning' | 'both'>('ironing');
   const [notes, setNotes] = useState('');
-  const [status, setStatus] = useState<'completed' | 'pending' | 'invoiced'>('completed');
+  const [status, setStatus] = useState<'completed' | 'pending' | 'invoiced'|'paid'>('completed');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [invoicingCompany, setInvoicingCompany] = useState<'Cleaning Angels' | 'Ironing Angels'>('Cleaning Angels');
   const [items, setItems] = useState<JobItem[]>([
