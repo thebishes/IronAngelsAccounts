@@ -257,6 +257,7 @@ const AddJob: React.FC<AddJobProps> = ({ onAddJob, onViewChange, editingJob }) =
                 <option value="completed">Completed</option>
                 <option value="pending">Pending</option>
                 <option value="invoiced">Invoiced</option>
+                <option value="paid">Paid</option>
               </select>
             </div>
             
