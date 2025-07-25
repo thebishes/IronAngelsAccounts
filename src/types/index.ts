@@ -13,7 +13,7 @@ export interface Job {
   type: 'ironing' | 'cleaning' | 'both';
   items: JobItem[];
   total: number;
-  status: 'completed' | 'pending' | 'invoiced';
+  status: 'completed' | 'pending' | 'invoiced' | 'paid';
   notes?: string;
   createdAt: string;
   invoiceNumber?: string;
@@ -25,7 +25,7 @@ export interface ReportFilters {
   endDate?: string;
   clientName?: string;
   type?: 'ironing' | 'cleaning' | 'both' | 'all';
-  status?: 'completed' | 'pending' | 'invoiced' | 'all';
+  status?: 'completed' | 'pending' | 'invoiced' | 'paid' | 'all';
 }
 
 export type TeamRole = 'owner' | 'admin' | 'editor' | 'viewer';

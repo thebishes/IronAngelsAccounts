@@ -174,7 +174,7 @@ export interface Database {
       [_ in never]: never
     }
     Enums: {
-      job_status: 'completed' | 'pending' | 'invoiced'
+      job_status: 'completed' | 'pending' | 'invoiced' | 'paid'
       job_type: 'ironing' | 'cleaning' | 'both'
       team_role: 'owner' | 'admin' | 'editor' | 'viewer'
     }
