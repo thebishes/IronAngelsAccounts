@@ -98,7 +98,16 @@ export const jobService = {
 
     if (itemsError) throw itemsError;
 
-    return convertJobRowToJob(jobData, itemsData);
+    // Fetch the job again to get the correct total calculated by database triggers
+    const { data: finalJobData, error: fetchError } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('id', jobData.id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    return convertJobRowToJob(finalJobData, itemsData);
   },
 
   async updateJob(job: Job): Promise<Job> {
@@ -156,7 +165,16 @@ export const jobService = {
 
     if (itemsError) throw itemsError;
 
-    return convertJobRowToJob(jobData, itemsData);
+    // Fetch the job again to get the correct total calculated by database triggers
+    const { data: finalJobData, error: finalFetchError } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('id', job.id)
+      .single();
+
+    if (finalFetchError) throw finalFetchError;
+
+    return convertJobRowToJob(finalJobData, itemsData);
   },
 
   async deleteJob(jobId: string): Promise<void> {

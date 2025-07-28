@@ -73,7 +73,8 @@ function App() {
     try {
       setError(null);
       const newJob = await jobService.createJob(job, currentTeam?.team.id);
-      setJobs(prev => [newJob, ...prev]);
+      // Reload all jobs to get the correct totals from database
+      await loadJobs();
     } catch (err) {
       console.error('Error adding job:', err);
       setError('Failed to add job. Please try again.');
@@ -84,7 +85,8 @@ function App() {
     try {
       setError(null);
       const updated = await jobService.updateJob(updatedJob);
-      setJobs(prev => prev.map(job => job.id === updated.id ? updated : job));
+      // Reload all jobs to get the correct totals from database
+      await loadJobs();
       setEditingJob(null);
     } catch (err) {
       console.error('Error updating job:', err);
@@ -96,7 +98,8 @@ function App() {
     try {
       setError(null);
       await jobService.deleteJob(jobId);
-      setJobs(prev => prev.filter(job => job.id !== jobId));
+      // Reload all jobs to ensure data consistency
+      await loadJobs();
     } catch (err) {
       console.error('Error deleting job:', err);
       setError('Failed to delete job. Please try again.');
