@@ -1,1 +1,2 @@
-id,name,created_by,created_at,updated_at
+id,name,description,owner_id,created_at,updated_at
+d0fdac6b-3bef-453e-93b5-d7f3aa2d7f00,Team 1,Hayley and Tony,6095deee-a049-490d-9e8c-113bddeaf8bd,2025-07-11 12:37:20.770671+00,2025-07-11 12:37:20.770671+00

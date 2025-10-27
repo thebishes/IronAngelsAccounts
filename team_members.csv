@@ -1,1 +1,3 @@
-team_id,user_id,role,joined_at
+id,team_id,user_id,role,joined_at
+06a0b794-45a6-4105-83ed-209b97a24c44,d0fdac6b-3bef-453e-93b5-d7f3aa2d7f00,6095deee-a049-490d-9e8c-113bddeaf8bd,owner,2025-07-11 16:00:32.112515+00
+1ab2ab1a-a20a-4d0b-ac9e-9f8584565899,d0fdac6b-3bef-453e-93b5-d7f3aa2d7f00,51efb25f-3ce1-43f4-993f-d9d72da03575,editor,2025-07-13 11:47:00.004419+00
