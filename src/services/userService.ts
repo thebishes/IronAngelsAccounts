@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { executeExternalQuery } from '../lib/externalPostgres';
 
 export interface User {
   id: string;
@@ -8,53 +8,38 @@ export interface User {
 
 export const userService = {
   async createUser(email: string, password: string): Promise<User> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('User not authenticated');
+    const result = await executeExternalQuery<User>(
+      'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email, created_at',
+      [email, password]
+    );
 
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to create user');
+    if (!result.success || !result.data || result.data.length === 0) {
+      throw new Error(result.error || 'Failed to create user');
     }
 
-    const { user } = await response.json();
-    return user;
+    return result.data[0];
   },
 
   async getAllUsers(): Promise<User[]> {
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, email, created_at')
-      .order('created_at', { ascending: false });
+    const result = await executeExternalQuery<User>(
+      'SELECT id, email, created_at FROM users ORDER BY created_at DESC'
+    );
 
-    if (error) throw error;
-    return data;
+    if (!result.success || !result.data) {
+      throw new Error(result.error || 'Failed to fetch users');
+    }
+
+    return result.data;
   },
 
   async deleteUser(userId: string): Promise<void> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('User not authenticated');
+    const result = await executeExternalQuery(
+      'DELETE FROM users WHERE id = $1',
+      [userId]
+    );
 
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ userId }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to delete user');
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to delete user');
     }
   }
 };

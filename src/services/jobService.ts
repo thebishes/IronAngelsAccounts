@@ -1,11 +1,33 @@
-import { supabase } from '../lib/supabase';
+import { executeExternalQuery } from '../lib/externalPostgres';
 import { Job, JobItem } from '../types';
-import { Database } from '../lib/database.types';
+import { authService } from './authService';
 
-type JobRow = Database['public']['Tables']['jobs']['Row'];
-type JobItemRow = Database['public']['Tables']['job_items']['Row'];
+interface JobRow {
+  id: string;
+  client_name: string;
+  date: string;
+  type: 'ironing' | 'cleaning' | 'both';
+  total: string;
+  status: 'completed' | 'pending' | 'invoiced' | 'paid';
+  notes: string | null;
+  invoice_number: string | null;
+  invoicing_company: string;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  team_id: string | null;
+}
 
-// Convert database row to Job type
+interface JobItemRow {
+  id: string;
+  job_id: string;
+  description: string;
+  quantity: number;
+  price: string;
+  total: string;
+  created_at: string;
+}
+
 const convertJobRowToJob = (jobRow: JobRow, items: JobItemRow[]): Job => {
   return {
     id: jobRow.id,
@@ -30,30 +52,35 @@ const convertJobRowToJob = (jobRow: JobRow, items: JobItemRow[]): Job => {
 
 export const jobService = {
   async getAllJobs(teamId?: string): Promise<Job[]> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !session.user) throw new Error('User not authenticated');
+    const { user } = await authService.getCurrentUser();
+    if (!user) throw new Error('User not authenticated');
 
-    let query = supabase
-      .from('jobs')
-      .select('*');
+    let sql = 'SELECT * FROM jobs WHERE user_id = $1';
+    const params: any[] = [user.id];
 
     if (teamId) {
-      query = query.eq('team_id', teamId);
+      sql = 'SELECT * FROM jobs WHERE team_id = $1';
+      params[0] = teamId;
     } else {
-      // Get personal jobs (no team) for backward compatibility
-      query = query.eq('user_id', session.user.id).is('team_id', null);
+      sql += ' AND team_id IS NULL';
     }
 
-    const { data: jobs, error: jobsError } = await query.order('date', { ascending: false });
+    sql += ' ORDER BY date DESC';
 
-    if (jobsError) throw jobsError;
+    const jobsResult = await executeExternalQuery<JobRow>(sql, params);
+    if (!jobsResult.success || !jobsResult.data) throw new Error(jobsResult.error || 'Failed to fetch jobs');
 
-    const { data: allItems, error: itemsError } = await supabase
-      .from('job_items')
-      .select('*')
-      .in('job_id', jobs.map(job => job.id));
+    const jobs = jobsResult.data;
 
-    if (itemsError) throw itemsError;
+    if (jobs.length === 0) return [];
+
+    const jobIds = jobs.map(j => j.id);
+    const itemsResult = await executeExternalQuery<JobItemRow>(
+      `SELECT * FROM job_items WHERE job_id = ANY($1)`,
+      [jobIds]
+    );
+
+    const allItems = itemsResult.success && itemsResult.data ? itemsResult.data : [];
 
     return jobs.map(job => {
       const jobItems = allItems.filter(item => item.job_id === job.id);
@@ -62,130 +89,148 @@ export const jobService = {
   },
 
   async createJob(job: Omit<Job, 'id' | 'createdAt'>, teamId?: string): Promise<Job> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !session.user) throw new Error('User not authenticated');
+    const { user } = await authService.getCurrentUser();
+    if (!user) throw new Error('User not authenticated');
 
-    // Insert job
-    const { data: jobData, error: jobError } = await supabase
-      .from('jobs')
-      .insert({
-        client_name: job.clientName,
-        date: job.date,
-        type: job.type,
-        status: job.status,
-        notes: job.notes || null,
-        user_id: session.user.id,
-        team_id: teamId || null,
-        invoicing_company: job.invoicingCompany || 'Cleaning Angels'
-      })
-      .select()
-      .single();
+    const jobResult = await executeExternalQuery<JobRow>(
+      `INSERT INTO jobs (client_name, date, type, status, notes, user_id, team_id, invoicing_company)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [
+        job.clientName,
+        job.date,
+        job.type,
+        job.status,
+        job.notes || null,
+        user.id,
+        teamId || null,
+        job.invoicingCompany || 'Cleaning Angels'
+      ]
+    );
 
-    if (jobError) throw jobError;
+    if (!jobResult.success || !jobResult.data || jobResult.data.length === 0) {
+      throw new Error(jobResult.error || 'Failed to create job');
+    }
 
-    // Insert job items
-    const { data: itemsData, error: itemsError } = await supabase
-      .from('job_items')
-      .insert(
-        job.items.map(item => ({
-          job_id: jobData.id,
-          description: item.description,
-          quantity: item.quantity,
-          price: item.price
-        }))
-      )
-      .select();
+    const jobData = jobResult.data[0];
 
-    if (itemsError) throw itemsError;
+    const itemsValues = job.items.map((item, idx) => {
+      const base = idx * 4;
+      return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4})`;
+    }).join(', ');
 
-    // Fetch the job again to get the correct total calculated by database triggers
-    const { data: finalJobData, error: fetchError } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('id', jobData.id)
-      .single();
+    const itemsParams = job.items.flatMap(item => [
+      jobData.id,
+      item.description,
+      item.quantity,
+      item.price
+    ]);
 
-    if (fetchError) throw fetchError;
+    const itemsResult = await executeExternalQuery<JobItemRow>(
+      `INSERT INTO job_items (job_id, description, quantity, price)
+       VALUES ${itemsValues}
+       RETURNING *`,
+      itemsParams
+    );
 
-    return convertJobRowToJob(finalJobData, itemsData);
+    if (!itemsResult.success || !itemsResult.data) {
+      throw new Error(itemsResult.error || 'Failed to create job items');
+    }
+
+    const finalJobResult = await executeExternalQuery<JobRow>(
+      'SELECT * FROM jobs WHERE id = $1',
+      [jobData.id]
+    );
+
+    if (!finalJobResult.success || !finalJobResult.data || finalJobResult.data.length === 0) {
+      throw new Error('Failed to fetch created job');
+    }
+
+    return convertJobRowToJob(finalJobResult.data[0], itemsResult.data);
   },
 
   async updateJob(job: Job): Promise<Job> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !session.user) throw new Error('User not authenticated');
+    const { user } = await authService.getCurrentUser();
+    if (!user) throw new Error('User not authenticated');
 
-    // Get the job to check team_id
-    const { data: existingJob, error: fetchError } = await supabase
-      .from('jobs')
-      .select('team_id')
-      .eq('id', job.id)
-      .single();
+    const existingJobResult = await executeExternalQuery<{ team_id: string | null }>(
+      'SELECT team_id FROM jobs WHERE id = $1',
+      [job.id]
+    );
 
-    if (fetchError) throw fetchError;
+    if (!existingJobResult.success || !existingJobResult.data || existingJobResult.data.length === 0) {
+      throw new Error('Job not found');
+    }
 
-    // Update job
-    const { data: jobData, error: jobError } = await supabase
-      .from('jobs')
-      .update({
-        client_name: job.clientName,
-        date: job.date,
-        type: job.type,
-        status: job.status,
-        notes: job.notes || null,
-        team_id: existingJob.team_id,
-        updated_at: new Date().toISOString(),
-        invoicing_company: job.invoicingCompany || 'Cleaning Angels'
-      })
-      .eq('id', job.id)
-      .select()
-      .single();
+    const existingJob = existingJobResult.data[0];
 
-    if (jobError) throw jobError;
+    const jobResult = await executeExternalQuery<JobRow>(
+      `UPDATE jobs
+       SET client_name = $1, date = $2, type = $3, status = $4, notes = $5,
+           team_id = $6, updated_at = NOW(), invoicing_company = $7
+       WHERE id = $8
+       RETURNING *`,
+      [
+        job.clientName,
+        job.date,
+        job.type,
+        job.status,
+        job.notes || null,
+        existingJob.team_id,
+        job.invoicingCompany || 'Cleaning Angels',
+        job.id
+      ]
+    );
 
-    // Delete existing items
-    const { error: deleteError } = await supabase
-      .from('job_items')
-      .delete()
-      .eq('job_id', job.id);
+    if (!jobResult.success || !jobResult.data || jobResult.data.length === 0) {
+      throw new Error(jobResult.error || 'Failed to update job');
+    }
 
-    if (deleteError) throw deleteError;
+    await executeExternalQuery('DELETE FROM job_items WHERE job_id = $1', [job.id]);
 
-    // Insert new items
-    const { data: itemsData, error: itemsError } = await supabase
-      .from('job_items')
-      .insert(
-        job.items.map(item => ({
-          job_id: job.id,
-          description: item.description,
-          quantity: item.quantity,
-          price: item.price
-        }))
-      )
-      .select();
+    const itemsValues = job.items.map((item, idx) => {
+      const base = idx * 4;
+      return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4})`;
+    }).join(', ');
 
-    if (itemsError) throw itemsError;
+    const itemsParams = job.items.flatMap(item => [
+      job.id,
+      item.description,
+      item.quantity,
+      item.price
+    ]);
 
-    // Fetch the job again to get the correct total calculated by database triggers
-    const { data: finalJobData, error: finalFetchError } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('id', job.id)
-      .single();
+    const itemsResult = await executeExternalQuery<JobItemRow>(
+      `INSERT INTO job_items (job_id, description, quantity, price)
+       VALUES ${itemsValues}
+       RETURNING *`,
+      itemsParams
+    );
 
-    if (finalFetchError) throw finalFetchError;
+    if (!itemsResult.success || !itemsResult.data) {
+      throw new Error(itemsResult.error || 'Failed to create job items');
+    }
 
-    return convertJobRowToJob(finalJobData, itemsData);
+    const finalJobResult = await executeExternalQuery<JobRow>(
+      'SELECT * FROM jobs WHERE id = $1',
+      [job.id]
+    );
+
+    if (!finalJobResult.success || !finalJobResult.data || finalJobResult.data.length === 0) {
+      throw new Error('Failed to fetch updated job');
+    }
+
+    return convertJobRowToJob(finalJobResult.data[0], itemsResult.data);
   },
 
   async deleteJob(jobId: string): Promise<void> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !session.user) throw new Error('User not authenticated');
+    const { user } = await authService.getCurrentUser();
+    if (!user) throw new Error('User not authenticated');
 
-    const { error } = await supabase
-      .from('jobs')
-      .delete()
-      .eq('id', jobId);
+    const result = await executeExternalQuery('DELETE FROM jobs WHERE id = $1', [jobId]);
 
-    if (error) throw error;
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to delete job');
+    }
   }
 };

@@ -1,167 +1,204 @@
-import { supabase } from '../lib/supabase';
+import { executeExternalQuery } from '../lib/externalPostgres';
 import { Team, TeamMember, UserTeamInfo, TeamRole } from '../types';
-import { Database } from '../lib/database.types';
+import { authService } from './authService';
 
-type TeamRow = Database['public']['Tables']['teams']['Row'];
-type TeamMemberRow = Database['public']['Tables']['team_members']['Row'];
+interface TeamRow {
+  id: string;
+  name: string;
+  description: string | null;
+  owner_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TeamMemberRow {
+  id: string;
+  team_id: string;
+  user_id: string;
+  role: TeamRole;
+  joined_at: string;
+}
+
+interface UserRow {
+  id: string;
+  email: string;
+}
 
 export const teamService = {
-  // Get all teams for current user
   async getUserTeams(): Promise<UserTeamInfo[]> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !session.user) throw new Error('User not authenticated');
+    const { user } = await authService.getCurrentUser();
+    if (!user) throw new Error('User not authenticated');
 
-    // Get teams where user is owner
-    const { data: ownedTeams, error: ownedError } = await supabase
-      .from('teams')
-      .select('*')
-      .eq('owner_id', session.user.id);
+    const ownedTeamsResult = await executeExternalQuery<TeamRow>(
+      'SELECT * FROM teams WHERE owner_id = $1',
+      [user.id]
+    );
 
-    if (ownedError) throw ownedError;
-
-    // Get teams where user is a member
-    const { data: memberTeams, error: memberError } = await supabase
-      .from('team_members')
-      .select(`
-        id,
-        role,
-        teams (*)
-      `)
-      .eq('user_id', session.user.id);
-
-    if (memberError) throw memberError;
+    const memberTeamsResult = await executeExternalQuery<TeamMemberRow & { team_name: string; team_description: string | null; team_owner_id: string; team_created_at: string; team_updated_at: string }>(
+      `SELECT tm.id, tm.team_id, tm.user_id, tm.role, tm.joined_at,
+              t.name as team_name, t.description as team_description,
+              t.owner_id as team_owner_id, t.created_at as team_created_at,
+              t.updated_at as team_updated_at
+       FROM team_members tm
+       JOIN teams t ON tm.team_id = t.id
+       WHERE tm.user_id = $1`,
+      [user.id]
+    );
 
     const userTeams: UserTeamInfo[] = [];
     const addedTeamIds = new Set<string>();
 
-    // Add owned teams
-    ownedTeams.forEach(team => {
-      userTeams.push({
-        team,
-        role: 'owner' as TeamRole,
-        member_id: team.id // Use team id as member id for owners
-      });
-      addedTeamIds.add(team.id);
-    });
-
-    // Add member teams
-    memberTeams.forEach(member => {
-      if (member.teams && !addedTeamIds.has(member.teams.id)) {
+    if (ownedTeamsResult.success && ownedTeamsResult.data) {
+      ownedTeamsResult.data.forEach(team => {
         userTeams.push({
-          team: member.teams as Team,
-          role: member.role as TeamRole,
-          member_id: member.id
+          team,
+          role: 'owner' as TeamRole,
+          member_id: team.id
         });
-        addedTeamIds.add(member.teams.id);
-      }
-    });
+        addedTeamIds.add(team.id);
+      });
+    }
+
+    if (memberTeamsResult.success && memberTeamsResult.data) {
+      memberTeamsResult.data.forEach(member => {
+        if (!addedTeamIds.has(member.team_id)) {
+          userTeams.push({
+            team: {
+              id: member.team_id,
+              name: member.team_name,
+              description: member.team_description,
+              owner_id: member.team_owner_id,
+              created_at: member.team_created_at,
+              updated_at: member.team_updated_at
+            },
+            role: member.role,
+            member_id: member.id
+          });
+          addedTeamIds.add(member.team_id);
+        }
+      });
+    }
 
     return userTeams;
   },
 
-  // Create a new team
   async createTeam(name: string, description?: string): Promise<Team> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !session.user) throw new Error('User not authenticated');
+    const { user } = await authService.getCurrentUser();
+    if (!user) throw new Error('User not authenticated');
 
-    const { data, error } = await supabase
-      .from('teams')
-      .insert({
-        name,
-        description,
-        owner_id: session.user.id
-      })
-      .select()
-      .single();
+    const result = await executeExternalQuery<TeamRow>(
+      `INSERT INTO teams (name, description, owner_id)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [name, description || null, user.id]
+    );
 
-    if (error) throw error;
-    return data;
+    if (!result.success || !result.data || result.data.length === 0) {
+      throw new Error(result.error || 'Failed to create team');
+    }
+
+    return result.data[0];
   },
 
-  // Update team
   async updateTeam(teamId: string, updates: Partial<Pick<Team, 'name' | 'description'>>): Promise<Team> {
-    const { data, error } = await supabase
-      .from('teams')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', teamId)
-      .select()
-      .single();
+    const setParts: string[] = [];
+    const params: any[] = [];
+    let paramIndex = 1;
 
-    if (error) throw error;
-    return data;
+    if (updates.name !== undefined) {
+      setParts.push(`name = $${paramIndex++}`);
+      params.push(updates.name);
+    }
+
+    if (updates.description !== undefined) {
+      setParts.push(`description = $${paramIndex++}`);
+      params.push(updates.description);
+    }
+
+    setParts.push(`updated_at = NOW()`);
+    params.push(teamId);
+
+    const result = await executeExternalQuery<TeamRow>(
+      `UPDATE teams SET ${setParts.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      params
+    );
+
+    if (!result.success || !result.data || result.data.length === 0) {
+      throw new Error(result.error || 'Failed to update team');
+    }
+
+    return result.data[0];
   },
 
-  // Delete team
   async deleteTeam(teamId: string): Promise<void> {
-    const { error } = await supabase
-      .from('teams')
-      .delete()
-      .eq('id', teamId);
+    const result = await executeExternalQuery(
+      'DELETE FROM teams WHERE id = $1',
+      [teamId]
+    );
 
-    if (error) throw error;
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to delete team');
+    }
   },
 
-  // Get team members with user details
   async getTeamMembers(teamId: string): Promise<TeamMember[]> {
-    const { data: members, error: membersError } = await supabase
-      .from('team_members')
-      .select('*')
-      .eq('team_id', teamId);
+    const membersResult = await executeExternalQuery<TeamMemberRow>(
+      'SELECT * FROM team_members WHERE team_id = $1',
+      [teamId]
+    );
 
-    if (membersError) throw membersError;
-    if (!members) return [];
+    if (!membersResult.success || !membersResult.data || membersResult.data.length === 0) {
+      return [];
+    }
 
-    // Get user details for each member
-    const userIds = members.map(m => m.user_id);
-    const { data: users, error: usersError } = await supabase
-      .from('users')
-      .select('id, email')
-      .in('id', userIds);
+    const userIds = membersResult.data.map(m => m.user_id);
+    const usersResult = await executeExternalQuery<UserRow>(
+      `SELECT id, email FROM users WHERE id = ANY($1)`,
+      [userIds]
+    );
 
-    if (usersError) throw usersError;
+    const users = usersResult.success && usersResult.data ? usersResult.data : [];
 
-    return members.map(member => ({
+    return membersResult.data.map(member => ({
       ...member,
-      user: users?.find(u => u.id === member.user_id)
+      user: users.find(u => u.id === member.user_id)
     }));
   },
 
-  // Add user to team directly (no invitation)
   async addUserToTeam(teamId: string, userId: string, role: TeamRole = 'viewer'): Promise<TeamMember> {
-    const { data, error } = await supabase
-      .from('team_members')
-      .insert({
-        team_id: teamId,
-        user_id: userId,
-        role
-      })
-      .select()
-      .single();
+    const result = await executeExternalQuery<TeamMemberRow>(
+      `INSERT INTO team_members (team_id, user_id, role)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [teamId, userId, role]
+    );
 
-    if (error) throw error;
-    return data;
+    if (!result.success || !result.data || result.data.length === 0) {
+      throw new Error(result.error || 'Failed to add user to team');
+    }
+
+    return result.data[0];
   },
 
-  // Update team member role
   async updateMemberRole(memberId: string, role: TeamRole): Promise<void> {
-    const { error } = await supabase
-      .from('team_members')
-      .update({ role })
-      .eq('id', memberId);
+    const result = await executeExternalQuery(
+      'UPDATE team_members SET role = $1 WHERE id = $2',
+      [role, memberId]
+    );
 
-    if (error) throw error;
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to update member role');
+    }
   },
 
-  // Remove team member
   async removeMember(memberId: string): Promise<void> {
-    const { error } = await supabase
-      .from('team_members')
-      .delete()
-      .eq('id', memberId);
+    const result = await executeExternalQuery(
+      'DELETE FROM team_members WHERE id = $1',
+      [memberId]
+    );
 
-    if (error) throw error;
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to remove member');
+    }
   }
 };

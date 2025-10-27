@@ -1,42 +1,97 @@
-import { supabase } from '../lib/supabase';
+import { executeExternalQuery } from '../lib/externalPostgres';
+
+const SIMPLE_USERNAME = 'admin';
+const SIMPLE_PASSWORD = 'admin123';
+
+let currentUser: { id: string; email: string } | null = null;
 
 export const authService = {
   async signUp(email: string, password: string) {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    return { data, error };
+    try {
+      const result = await executeExternalQuery(
+        'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email, created_at',
+        [email, password]
+      );
+
+      if (result.success && result.data && result.data.length > 0) {
+        currentUser = { id: result.data[0].id, email: result.data[0].email };
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        return { data: { user: currentUser }, error: null };
+      }
+
+      return { data: null, error: { message: result.error || 'Failed to create user' } };
+    } catch (error) {
+      return { data: null, error };
+    }
   },
 
-  async signIn(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { data, error };
+  async signIn(username: string, password: string) {
+    if (username === SIMPLE_USERNAME && password === SIMPLE_PASSWORD) {
+      const result = await executeExternalQuery<{ id: string; email: string }>(
+        'SELECT id, email FROM users LIMIT 1'
+      );
+
+      if (result.success && result.data && result.data.length > 0) {
+        currentUser = result.data[0];
+      } else {
+        const createResult = await executeExternalQuery<{ id: string; email: string }>(
+          'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email',
+          ['admin@example.com', 'admin123']
+        );
+
+        if (createResult.success && createResult.data && createResult.data.length > 0) {
+          currentUser = createResult.data[0];
+        }
+      }
+
+      if (currentUser) {
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        return { data: { user: currentUser }, error: null };
+      }
+    }
+
+    return { data: null, error: { message: 'Invalid credentials' } };
   },
 
   async signOut() {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    currentUser = null;
+    localStorage.removeItem('currentUser');
+    return { error: null };
   },
 
   async getCurrentUser() {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    return { user, error };
+    if (currentUser) {
+      return { user: currentUser, error: null };
+    }
+
+    const stored = localStorage.getItem('currentUser');
+    if (stored) {
+      currentUser = JSON.parse(stored);
+      return { user: currentUser, error: null };
+    }
+
+    return { user: null, error: null };
   },
 
   onAuthStateChange(callback: (user: any) => void) {
-    return supabase.auth.onAuthStateChange((event, session) => {
-      callback(session?.user || null);
-    });
+    const stored = localStorage.getItem('currentUser');
+    if (stored) {
+      currentUser = JSON.parse(stored);
+      callback(currentUser);
+    } else {
+      callback(null);
+    }
+
+    return {
+      data: {
+        subscription: {
+          unsubscribe: () => {}
+        }
+      }
+    };
   },
 
   async resetPassword(email: string) {
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    return { data, error };
+    return { data: null, error: { message: 'Password reset not supported in simple auth mode' } };
   }
 };
