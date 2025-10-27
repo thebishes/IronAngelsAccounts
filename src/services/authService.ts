@@ -1,7 +1,7 @@
 import { executeExternalQuery } from '../lib/externalPostgres';
 
-const SIMPLE_USERNAME = 'admin';
-const SIMPLE_PASSWORD = 'admin123';
+const TONY_USERNAME = 'tony';
+const TONY_PASSWORD = 'admin123';
 
 let currentUser: { id: string; email: string } | null = null;
 
@@ -26,26 +26,14 @@ export const authService = {
   },
 
   async signIn(username: string, password: string) {
-    if (username === SIMPLE_USERNAME && password === SIMPLE_PASSWORD) {
+    if (username === TONY_USERNAME && password === TONY_PASSWORD) {
       const result = await executeExternalQuery<{ id: string; email: string }>(
-        'SELECT id, email FROM users WHERE email != $1 ORDER BY created_at ASC LIMIT 1',
-        ['admin@example.com']
+        'SELECT id, email FROM users WHERE email = $1 LIMIT 1',
+        ['tony@example.com']
       );
 
       if (result.success && result.data && result.data.length > 0) {
         currentUser = result.data[0];
-      } else {
-        const createResult = await executeExternalQuery<{ id: string; email: string }>(
-          'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email',
-          ['admin@example.com', 'admin123']
-        );
-
-        if (createResult.success && createResult.data && createResult.data.length > 0) {
-          currentUser = createResult.data[0];
-        }
-      }
-
-      if (currentUser) {
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
         return { data: { user: currentUser }, error: null };
       }
