@@ -1,6 +1,5 @@
 import React from 'react';
-import { FileText, PlusCircle, BarChart3, Home, LogOut, User, Users } from 'lucide-react';
-import { UserTeamInfo } from '../types';
+import { FileText, PlusCircle, BarChart3, Home, LogOut, User } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -8,16 +7,14 @@ interface LayoutProps {
   onViewChange: (view: string) => void;
   user: any;
   onSignOut: () => void;
-  currentTeam?: UserTeamInfo | null;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange, user, onSignOut, currentTeam }) => {
+const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange, user, onSignOut }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'add-job', label: 'Add Job', icon: PlusCircle },
     { id: 'jobs', label: 'All Jobs', icon: FileText },
     { id: 'reports', label: 'Reports', icon: BarChart3 },
-    { id: 'teams', label: 'Teams', icon: Users },
   ];
 
   return (
@@ -28,9 +25,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange, us
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <h1 className="text-white text-xl font-bold">Iron & Clean Pro</h1>
-                {currentTeam && (
-                  <p className="text-slate-300 text-sm">Team: {currentTeam.team.name}</p>
-                )}
               </div>
             </div>
             

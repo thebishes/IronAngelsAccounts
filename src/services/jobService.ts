@@ -51,21 +51,12 @@ const convertJobRowToJob = (jobRow: JobRow, items: JobItemRow[]): Job => {
 };
 
 export const jobService = {
-  async getAllJobs(teamId?: string): Promise<Job[]> {
+  async getAllJobs(): Promise<Job[]> {
     const { user } = await authService.getCurrentUser();
     if (!user) throw new Error('User not authenticated');
 
-    let sql = 'SELECT * FROM jobs WHERE user_id = $1';
-    const params: any[] = [user.id];
-
-    if (teamId) {
-      sql = 'SELECT * FROM jobs WHERE team_id = $1';
-      params[0] = teamId;
-    } else {
-      sql += ' AND team_id IS NULL';
-    }
-
-    sql += ' ORDER BY date DESC';
+    const sql = 'SELECT * FROM jobs WHERE user_id = $1 ORDER BY date DESC';
+    const params = [user.id];
 
     const jobsResult = await executeExternalQuery<JobRow>(sql, params);
     if (!jobsResult.success || !jobsResult.data) throw new Error(jobsResult.error || 'Failed to fetch jobs');
@@ -88,13 +79,13 @@ export const jobService = {
     });
   },
 
-  async createJob(job: Omit<Job, 'id' | 'createdAt'>, teamId?: string): Promise<Job> {
+  async createJob(job: Omit<Job, 'id' | 'createdAt'>): Promise<Job> {
     const { user } = await authService.getCurrentUser();
     if (!user) throw new Error('User not authenticated');
 
     const jobResult = await executeExternalQuery<JobRow>(
-      `INSERT INTO jobs (client_name, date, type, status, notes, user_id, team_id, invoicing_company)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO jobs (client_name, date, type, status, notes, user_id, invoicing_company)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
       [
         job.clientName,
@@ -103,7 +94,6 @@ export const jobService = {
         job.status,
         job.notes || null,
         user.id,
-        teamId || null,
         job.invoicingCompany || 'Cleaning Angels'
       ]
     );

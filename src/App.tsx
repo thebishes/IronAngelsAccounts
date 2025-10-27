@@ -5,8 +5,7 @@ import AddJob from './components/AddJob';
 import JobList from './components/JobList';
 import Reports from './components/Reports';
 import Auth from './components/Auth';
-import TeamManagement from './components/TeamManagement';
-import { Job, UserTeamInfo } from './types';
+import { Job } from './types';
 import { jobService } from './services/jobService';
 import { authService } from './services/authService';
 import { Loader2 } from 'lucide-react';
@@ -18,7 +17,6 @@ function App() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentTeam, setCurrentTeam] = useState<UserTeamInfo | null>(null);
 
   useEffect(() => {
     // Check for existing session
@@ -54,7 +52,7 @@ function App() {
   const loadJobs = async () => {
     try {
       setError(null);
-      const jobsData = await jobService.getAllJobs(currentTeam?.team.id);
+      const jobsData = await jobService.getAllJobs();
       setJobs(jobsData);
     } catch (err) {
       console.error('Error loading jobs:', err);
@@ -62,17 +60,10 @@ function App() {
     }
   };
 
-  // Reload jobs when team changes
-  useEffect(() => {
-    if (user) {
-      loadJobs();
-    }
-  }, [currentTeam, user]);
-
   const handleAddJob = async (job: Omit<Job, 'id' | 'createdAt'>) => {
     try {
       setError(null);
-      const newJob = await jobService.createJob(job, currentTeam?.team.id);
+      const newJob = await jobService.createJob(job);
       // Reload all jobs to get the correct totals from database
       await loadJobs();
     } catch (err) {
@@ -116,7 +107,6 @@ function App() {
       await authService.signOut();
       setUser(null);
       setJobs([]);
-      setCurrentTeam(null);
       setCurrentView('dashboard');
     } catch (err) {
       console.error('Error signing out:', err);
@@ -159,14 +149,6 @@ function App() {
         );
       case 'reports':
         return <Reports jobs={jobs} />;
-      case 'teams':
-        return (
-          <TeamManagement 
-            onViewChange={setCurrentView}
-            onTeamSelect={setCurrentTeam}
-            currentTeam={currentTeam}
-          />
-        );
       default:
         return <Dashboard jobs={jobs} onViewChange={setCurrentView} />;
     }
@@ -188,12 +170,11 @@ function App() {
   }
 
   return (
-    <Layout 
-      currentView={currentView} 
+    <Layout
+      currentView={currentView}
       onViewChange={setCurrentView}
       user={user}
       onSignOut={handleSignOut}
-      currentTeam={currentTeam}
     >
       {renderCurrentView()}
     </Layout>
