@@ -37,6 +37,20 @@ async function executeQuery(sql: string, params?: any[]) {
   }
 }
 
+async function executeMultipleStatements(sql: string) {
+  const client = new Client(config);
+  try {
+    await client.connect();
+    await client.queryArray(sql);
+    return { success: true };
+  } catch (error) {
+    console.error("Database error:", error);
+    throw error;
+  } finally {
+    await client.end();
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -52,6 +66,19 @@ Deno.serve(async (req: Request) => {
       const result = await executeQuery(sql, params);
       return new Response(
         JSON.stringify({ success: true, data: result.rows }),
+        {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
+    if (action === "execute") {
+      await executeMultipleStatements(sql);
+      return new Response(
+        JSON.stringify({ success: true, message: "SQL executed successfully" }),
         {
           headers: {
             ...corsHeaders,
