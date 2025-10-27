@@ -82,5 +82,41 @@ export const authService = {
 
   async resetPassword(email: string) {
     return { data: null, error: { message: 'Password reset not supported in simple auth mode' } };
+  },
+
+  async changePassword(currentPassword: string, newPassword: string) {
+    try {
+      const { user } = await this.getCurrentUser();
+      if (!user) {
+        return { success: false, error: { message: 'User not authenticated' } };
+      }
+
+      const result = await executeExternalQuery(
+        'SELECT password_hash FROM users WHERE id = $1',
+        [user.id]
+      );
+
+      if (!result.success || !result.data || result.data.length === 0) {
+        return { success: false, error: { message: 'User not found' } };
+      }
+
+      const storedPassword = result.data[0].password_hash;
+      if (storedPassword !== currentPassword) {
+        return { success: false, error: { message: 'Current password is incorrect' } };
+      }
+
+      const updateResult = await executeExternalQuery(
+        'UPDATE users SET password_hash = $1 WHERE id = $2',
+        [newPassword, user.id]
+      );
+
+      if (updateResult.success) {
+        return { success: true, error: null };
+      }
+
+      return { success: false, error: { message: updateResult.error || 'Failed to update password' } };
+    } catch (error) {
+      return { success: false, error: { message: 'An error occurred while changing password' } };
+    }
   }
 };

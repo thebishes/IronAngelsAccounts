@@ -1,5 +1,6 @@
-import React from 'react';
-import { FileText, PlusCircle, BarChart3, Home, LogOut, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, PlusCircle, BarChart3, Home, LogOut, User, Lock, ChevronDown } from 'lucide-react';
+import ChangePassword from './ChangePassword';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,6 +11,9 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange, user, onSignOut }) => {
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'add-job', label: 'Add Job', icon: PlusCircle },
@@ -50,17 +54,41 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange, us
               </div>
               
               <div className="flex items-center space-x-3 border-l border-slate-600 pl-4">
-                <div className="flex items-center text-slate-300">
-                  <User className="h-4 w-4 mr-2" />
-                  <span className="text-sm">{user?.email}</span>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center text-slate-300 hover:text-white transition-colors px-3 py-2 rounded-md hover:bg-slate-700"
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    <span className="text-sm">{user?.email}</span>
+                    <ChevronDown className="h-4 w-4 ml-1" />
+                  </button>
+
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          setShowChangePassword(true);
+                        }}
+                        className="w-full flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 transition-colors"
+                      >
+                        <Lock className="h-4 w-4 mr-2" />
+                        Change Password
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          onSignOut();
+                        }}
+                        className="w-full flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 transition-colors border-t border-slate-200"
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Sign Out
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={onSignOut}
-                  className="flex items-center px-3 py-2 text-slate-300 hover:bg-slate-700 hover:text-white rounded-md transition-colors duration-200"
-                  title="Sign Out"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
               </div>
             </div>
           </div>
@@ -93,6 +121,10 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange, us
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {children}
       </main>
+
+      {showChangePassword && (
+        <ChangePassword onClose={() => setShowChangePassword(false)} />
+      )}
     </div>
   );
 };
