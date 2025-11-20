@@ -26,19 +26,28 @@ export const authService = {
   },
 
   async signIn(username: string, password: string) {
-  const result = await executeExternalQuery<{ id: string; email: string }>(
-    'SELECT id, email FROM users WHERE email = $1 LIMIT 1',
-    [username]
-  );
+    try {
+      const result = await executeExternalQuery<{ id: string; email: string; password_hash: string }>(
+        'SELECT id, email, password_hash FROM users WHERE email = $1 LIMIT 1',
+        [username]
+      );
 
-  if (result.success && result.data && result.data.length > 0) {
-    currentUser = result.data[0];
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    return { data: { user: currentUser }, error: null };
-  }
+      if (result.success && result.data && result.data.length > 0) {
+        const user = result.data[0];
 
-  return { data: null, error: { message: 'Invalid credentials' } };
-},
+        if (user.password_hash === password) {
+          currentUser = { id: user.id, email: user.email };
+          localStorage.setItem('currentUser', JSON.stringify(currentUser));
+          return { data: { user: currentUser }, error: null };
+        }
+      }
+
+      return { data: null, error: { message: 'Invalid credentials' } };
+    } catch (error) {
+      console.error('Sign in error:', error);
+      return { data: null, error: { message: 'An error occurred during sign in' } };
+    }
+  },
 
   async signOut() {
     currentUser = null;

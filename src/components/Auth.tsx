@@ -66,7 +66,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
-                  placeholder="tony"
+                  placeholder="Enter your email"
                 />
               </div>
 
@@ -83,7 +83,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
-                  placeholder="admin123"
+                  placeholder="Enter your password"
                 />
               </div>
             </div>
