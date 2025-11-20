@@ -55,14 +55,13 @@ export const jobService = {
     const { user } = await authService.getCurrentUser();
     if (!user) throw new Error('User not authenticated');
 
-const sql = 'SELECT * FROM jobs ORDER BY date DESC';
-const params: any[] = [];
+    const sql = 'SELECT * FROM jobs ORDER BY date DESC';
+    const params: any[] = [];
 
     const jobsResult = await executeExternalQuery<JobRow>(sql, params);
     if (!jobsResult.success || !jobsResult.data) throw new Error(jobsResult.error || 'Failed to fetch jobs');
 
     const jobs = jobsResult.data;
-
     if (jobs.length === 0) return [];
 
     const jobIds = jobs.map(j => j.id);
@@ -70,6 +69,8 @@ const params: any[] = [];
       `SELECT * FROM job_items WHERE job_id = ANY($1)`,
       [jobIds]
     );
+
+
 
     const allItems = itemsResult.success && itemsResult.data ? itemsResult.data : [];
 
