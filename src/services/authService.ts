@@ -25,7 +25,7 @@ export const authService = {
     }
   },
 
-aasync signIn(email: string, password: string) {
+async signIn(email: string, password: string) {
   const fakeUser = { id: 'debug-user', email };
   localStorage.setItem('currentUser', JSON.stringify(fakeUser));
   return { data: { user: fakeUser }, error: null };
