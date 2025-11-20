@@ -44,7 +44,7 @@ async signIn(email: string, password: string) {
   const currentUser = { id: user.id, email: user.email };
   localStorage.setItem('currentUser', JSON.stringify(currentUser));
   return { data: { user: currentUser }, error: null };
-}
+},
 
   async signOut() {
     currentUser = null;
