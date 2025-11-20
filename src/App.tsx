@@ -9,6 +9,7 @@ import { Job } from './types';
 import { jobService } from './services/jobService';
 import { authService } from './services/authService';
 import { Loader2 } from 'lucide-react';
+const DEBUG_MODE = true; // Set to false to re-enable login
 
 function App() {
   const [currentView, setCurrentView] = useState('dashboard');
@@ -18,36 +19,43 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Check for existing session
-    const checkUser = async () => {
-      try {
-        const { user } = await authService.getCurrentUser();
-        setUser(user);
-        if (user) {
-          await loadJobs();
-        }
-      } catch (err) {
-        console.error('Error checking user:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+useEffect(() => {
+  const checkUser = async () => {
+    if (DEBUG_MODE) {
+      const fakeUser = { id: 'debug-user', email: 'debug@example.com' };
+      localStorage.setItem('currentUser', JSON.stringify(fakeUser));
+      setUser(fakeUser);
+      await loadJobs();
+      setLoading(false);
+      return;
+    }
 
-    checkUser();
-
-    // Listen for auth changes
-    const { data: { subscription } } = authService.onAuthStateChange(async (user) => {
+    try {
+      const { user } = await authService.getCurrentUser();
       setUser(user);
       if (user) {
         await loadJobs();
-      } else {
-        setJobs([]);
       }
-    });
+    } catch (err) {
+      console.error('Error checking user:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return () => subscription.unsubscribe();
-  }, []);
+  checkUser();
+
+  const { data: { subscription } } = authService.onAuthStateChange(async (user) => {
+    setUser(user);
+    if (user) {
+      await loadJobs();
+    } else {
+      setJobs([]);
+    }
+  });
+
+  return () => subscription.unsubscribe();
+}, []);
 
   const loadJobs = async () => {
     try {
