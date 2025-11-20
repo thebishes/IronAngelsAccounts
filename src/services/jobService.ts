@@ -55,8 +55,8 @@ export const jobService = {
     const { user } = await authService.getCurrentUser();
     if (!user) throw new Error('User not authenticated');
 
-    const sql = 'SELECT * FROM jobs WHERE user_id = $1 ORDER BY date DESC';
-    const params = [user.id];
+const sql = 'SELECT * FROM jobs ORDER BY date DESC';
+const params: any[] = [];
 
     const jobsResult = await executeExternalQuery<JobRow>(sql, params);
     if (!jobsResult.success || !jobsResult.data) throw new Error(jobsResult.error || 'Failed to fetch jobs');
