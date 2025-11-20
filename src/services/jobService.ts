@@ -52,8 +52,8 @@ const convertJobRowToJob = (jobRow: JobRow, items: JobItemRow[]): Job => {
 
 export const jobService = {
   async getAllJobs(): Promise<Job[]> {
-    'const { user } = await authService.getCurrentUser();'
-    'if (!user) throw new Error('User not authenticated');'
+    //const { user } = await authService.getCurrentUser();
+    //if (!user) throw new Error('User not authenticated');
 
     const sql = 'SELECT * FROM jobs ORDER BY date DESC';
     const params: any[] = [];
