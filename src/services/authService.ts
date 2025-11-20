@@ -25,29 +25,26 @@ export const authService = {
     }
   },
 
-  async signIn(username: string, password: string) {
-    try {
-      const result = await executeExternalQuery<{ id: string; email: string; password_hash: string }>(
-        'SELECT id, email, password_hash FROM users WHERE email = $1 LIMIT 1',
-        [username]
-      );
+async signIn(email: string, password: string) {
+  const result = await executeExternalQuery(
+    'SELECT id, email, password_hash FROM users WHERE email = $1 LIMIT 1',
+    [email]
+  );
 
-      if (result.success && result.data && result.data.length > 0) {
-        const user = result.data[0];
+  if (!result.success || !result.data || result.data.length === 0) {
+    return { data: null, error: { message: 'User not found' } };
+  }
 
-        if (user.password_hash === password) {
-          currentUser = { id: user.id, email: user.email };
-          localStorage.setItem('currentUser', JSON.stringify(currentUser));
-          return { data: { user: currentUser }, error: null };
-        }
-      }
+  const user = result.data[0];
 
-      return { data: null, error: { message: 'Invalid credentials' } };
-    } catch (error) {
-      console.error('Sign in error:', error);
-      return { data: null, error: { message: 'An error occurred during sign in' } };
-    }
-  },
+  if (user.password_hash !== password) {
+    return { data: null, error: { message: 'Incorrect password' } };
+  }
+
+  const currentUser = { id: user.id, email: user.email };
+  localStorage.setItem('currentUser', JSON.stringify(currentUser));
+  return { data: { user: currentUser }, error: null };
+}
 
   async signOut() {
     currentUser = null;
