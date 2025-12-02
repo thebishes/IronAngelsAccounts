@@ -84,6 +84,16 @@ export const jobService = {
     const { user } = await authService.getCurrentUser();
     if (!user) throw new Error('User not authenticated');
 
+    console.log('Creating job in database with user:', user.id);
+    console.log('Job data:', {
+      clientName: job.clientName,
+      date: job.date,
+      type: job.type,
+      status: job.status,
+      notes: job.notes,
+      invoicingCompany: job.invoicingCompany
+    });
+
     const jobResult = await executeExternalQuery<JobRow>(
       `INSERT INTO jobs (client_name, date, type, status, notes, user_id, invoicing_company)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -99,11 +109,18 @@ export const jobService = {
       ]
     );
 
+    console.log('Job insert result:', jobResult);
+
     if (!jobResult.success || !jobResult.data || jobResult.data.length === 0) {
-      throw new Error(jobResult.error || 'Failed to create job');
+      const errorMsg = jobResult.error || 'Failed to create job';
+      console.error('Job creation failed:', errorMsg);
+      throw new Error(errorMsg);
     }
 
     const jobData = jobResult.data[0];
+
+    console.log('Job created with ID:', jobData.id);
+    console.log('Creating job items:', job.items);
 
     const itemsValues = job.items.map((item, idx) => {
       const base = idx * 4;
@@ -117,6 +134,9 @@ export const jobService = {
       item.price
     ]);
 
+    console.log('Items SQL values:', itemsValues);
+    console.log('Items params:', itemsParams);
+
     const itemsResult = await executeExternalQuery<JobItemRow>(
       `INSERT INTO job_items (job_id, description, quantity, price)
        VALUES ${itemsValues}
@@ -124,8 +144,12 @@ export const jobService = {
       itemsParams
     );
 
+    console.log('Items insert result:', itemsResult);
+
     if (!itemsResult.success || !itemsResult.data) {
-      throw new Error(itemsResult.error || 'Failed to create job items');
+      const errorMsg = itemsResult.error || 'Failed to create job items';
+      console.error('Job items creation failed:', errorMsg);
+      throw new Error(errorMsg);
     }
 
     const finalJobResult = await executeExternalQuery<JobRow>(

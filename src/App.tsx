@@ -71,12 +71,16 @@ useEffect(() => {
   const handleAddJob = async (job: Omit<Job, 'id' | 'createdAt'>) => {
     try {
       setError(null);
+      console.log('Creating job with data:', job);
       const newJob = await jobService.createJob(job);
+      console.log('Job created successfully:', newJob);
       // Reload all jobs to get the correct totals from database
       await loadJobs();
     } catch (err) {
       console.error('Error adding job:', err);
-      setError('Failed to add job. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to add job. Please try again.';
+      setError(errorMessage);
+      alert(`Error adding job: ${errorMessage}`);
     }
   };
 
