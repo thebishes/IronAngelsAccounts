@@ -1,0 +1,275 @@
+.add-job {
+  padding: 2rem 0;
+}
+
+.add-job-form {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.add-job-form h1 {
+  font-size: 1.75rem;
+  color: #3c4043;
+  margin-bottom: 2rem;
+  font-weight: 600;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #3c4043;
+  font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #6c7b7f;
+  box-shadow: 0 0 0 2px rgba(108, 123, 127, 0.1);
+}
+
+.form-group input.readonly {
+  background-color: #f8f9fa;
+  color: #666;
+}
+
+.items-section {
+  margin-bottom: 2rem;
+}
+
+.items-section h3 {
+  font-size: 1.1rem;
+  color: #3c4043;
+  margin-bottom: 1rem;
+}
+
+.items-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 60px;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  font-weight: 500;
+  color: #666;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #e9ecef;
+  margin-bottom: 1rem;
+}
+
+.item-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 60px;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  align-items: center;
+}
+
+.item-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-label {
+  display: none;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  color: #3c4043;
+  font-size: 0.8rem;
+}
+
+.item-row input {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.item-row input:focus {
+  outline: none;
+  border-color: #6c7b7f;
+}
+
+.item-row input.readonly {
+  background-color: #f8f9fa;
+  color: #666;
+}
+
+.remove-item-btn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.remove-item-btn:hover:not(:disabled) {
+  background-color: #fee;
+}
+
+.remove-item-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.add-item-btn {
+  background-color: #f8f9fa;
+  border: 1px dashed #6c7b7f;
+  color: #6c7b7f;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+  transition: all 0.2s ease;
+}
+
+.add-item-btn:hover {
+  background-color: #6c7b7f;
+  color: white;
+}
+
+.form-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.total-amount {
+  font-size: 1.25rem;
+  color: #3c4043;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.cancel-btn {
+  background-color: #f8f9fa;
+  color: #666;
+  border: 1px solid #ddd;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.cancel-btn:hover {
+  background-color: #e9ecef;
+}
+
+.save-btn {
+  background-color: #6c7b7f;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.save-btn:hover {
+  background-color: #5a6569;
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .items-header {
+    display: none; /* Hide headers on mobile and use labels instead */
+  }
+  
+  .item-row {
+    display: block;
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+  
+  .item-field {
+    margin-bottom: 0.75rem;
+  }
+  
+  .item-field:last-of-type {
+    margin-bottom: 0;
+  }
+  
+  .mobile-label {
+    display: block;
+  }
+  
+  .remove-item-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+  }
+  
+  .form-footer {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+}
+
+/* Improved container width management */
+.items-section {
+  margin-bottom: 2rem;
+  overflow-x: auto; /* Allow horizontal scroll if needed */
+}
+
+.items-header,
+.item-row {
+  min-width: 600px; /* Ensure minimum width to prevent cramping */
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .items-header,
+  .item-row {
+    grid-template-columns: 1.8fr 0.8fr 0.8fr 0.8fr 60px;
+    gap: 0.5rem;
+  }
+}
