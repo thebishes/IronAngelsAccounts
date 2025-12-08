@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -12,6 +13,10 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Static serving for combined deployment (serve React build)
+const buildDir = path.join(__dirname, '..', 'build');
+app.use(express.static(buildDir));
 
 // Test database connection and inspect tables on startup
 async function testConnection() {
@@ -453,9 +458,77 @@ app.put('/api/jobs/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Delete job by invoice number (explicit route)
+app.delete('/api/jobs/invoice/:invoiceNumber', authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { invoiceNumber } = req.params;
+    if (!invoiceNumber) return res.status(400).json({ error: 'Invoice number required' });
+
+    await client.query('BEGIN');
+    const delRes = await client.query('DELETE FROM jobs WHERE invoice_number = $1 RETURNING id', [invoiceNumber]);
+
+    if (delRes.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    await client.query('COMMIT');
+    return res.status(204).send();
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('❌ Error deleting job by invoice:', error.message);
+    return res.status(500).json({ error: 'Error deleting job by invoice: ' + error.message });
+  } finally {
+    client.release();
+  }
+});
+
+// Delete job by identifier (numeric id or UUID)
+app.delete('/api/jobs/:identifier', authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { identifier } = req.params;
+
+    await client.query('BEGIN');
+
+    // Prefer exact UUID match when identifier looks like a UUID
+    const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    let delRes;
+    if (uuidV4Regex.test(identifier)) {
+      delRes = await client.query('DELETE FROM jobs WHERE id = $1::uuid RETURNING id', [identifier]);
+    } else if (/^\d+$/.test(identifier)) {
+      // Pure numeric string; if id is integer in some schemas
+      delRes = await client.query('DELETE FROM jobs WHERE id = $1 RETURNING id', [parseInt(identifier, 10)]);
+    } else {
+      // Fallback to invoice number delete
+      delRes = await client.query('DELETE FROM jobs WHERE invoice_number = $1 RETURNING id', [identifier]);
+    }
+
+    if (delRes.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    await client.query('COMMIT');
+    return res.status(204).send();
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('❌ Error deleting job:', error.message);
+    return res.status(500).json({ error: 'Error deleting job: ' + error.message });
+  } finally {
+    client.release();
+  }
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// SPA fallback: send index.html for any non-API route
+app.get(/^\/(?!api).*/, (req, res) => {
+  res.sendFile(path.join(buildDir, 'index.html'));
 });
 
 // Start server
