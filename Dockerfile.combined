@@ -7,7 +7,7 @@ FROM node:18-alpine AS base
 WORKDIR /app
 
 # Install root deps for building frontend
-COPY package*.json ./
+COPY server/package*.json ./
 RUN npm ci --omit=dev
 
 # Copy frontend and build
