@@ -11,6 +11,7 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.8.1",
     "react-scripts": "5.0.1",
+    "jspdf": "^2.5.1",
     "web-vitals": "^2.1.4"
   },
   "devDependencies": {
@@ -25,6 +26,7 @@
     "server-dev": "cd server && npm run dev",
     "dev": "concurrently \"npm run server-dev\" \"npm start\""
   },
+  "proxy": "http://localhost:3001",
   "eslintConfig": {
     "extends": [
       "react-app",

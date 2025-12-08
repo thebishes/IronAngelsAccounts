@@ -1,0 +1,7 @@
+command to start rovo dev is
+
+acli rovodev run
+
+npm install  wihin the app folder to install npm and webserver or clear it down
+
+npm run dev  to build the dev running react app

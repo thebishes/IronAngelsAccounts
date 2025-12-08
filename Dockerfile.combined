@@ -1,0 +1,28 @@
+# Combined Frontend + Backend Dockerfile
+# - Builds the React app
+# - Installs server dependencies
+# - Serves static build via Express from server/server.js
+
+FROM node:18-alpine AS base
+WORKDIR /app
+
+# Install root deps for building frontend
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# Copy frontend and build
+COPY . ./
+RUN npm run build
+
+# Install backend deps (production)
+WORKDIR /app/server
+RUN npm ci --omit=dev
+
+# Final runtime uses Node
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3001
+EXPOSE 3001
+
+# Start the server which also serves the React build statically
+CMD ["node", "server/server.js"]
