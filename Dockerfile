@@ -12,7 +12,7 @@ RUN npm ci --omit=dev
 
 # Copy source
 # COPY server/.env ./
-COPY server/ ./
+# COPY server/ ./
 
 # Expose and run
 EXPOSE 3001
