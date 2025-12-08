@@ -7,7 +7,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Install dependencies
-COPY server/package*.json ./
+COPY package*.json ./
 RUN npm ci --omit=dev
 
 # Copy source
